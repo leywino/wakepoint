@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:wakepoint/models/location_model.dart';
 
 class LocationProvider with ChangeNotifier {
@@ -15,7 +15,6 @@ class LocationProvider with ChangeNotifier {
   Position? _currentPosition;
   bool _isTracking = false;
   StreamSubscription<Position>? _positionStream;
-
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -26,49 +25,37 @@ class LocationProvider with ChangeNotifier {
 
   LocationProvider() {
     _initNotifications();
-    _initBackgroundFetch();
+    _requestPermissions();
     loadLocations();
   }
 
-  /// Initialize Notifications
+  /// 🔔 Initialize Local Notifications
   void _initNotifications() {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings settings =
         InitializationSettings(android: androidSettings);
-    _notificationsPlugin.initialize(settings);
-  }
-
-  /// Initialize Background Fetch for 15-min Updates
-  void _initBackgroundFetch() {
-    BackgroundFetch.configure(
-      BackgroundFetchConfig(
-        minimumFetchInterval: 15,
-        stopOnTerminate: false,
-        enableHeadless: true,
-      ),
-      (String taskId) async {
-        await _fetchBackgroundLocation();
-        BackgroundFetch.finish(taskId);
+    _notificationsPlugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.actionId == 'STOP_TRACKING') {
+          stopForegroundService();
+        }
       },
     );
   }
 
-  /// Fetch Background Location (For 15-min updates)
-  Future<void> _fetchBackgroundLocation() async {
-    if (!_isTracking) return;
-
-    Position position = await Geolocator.getCurrentPosition(
-        locationSettings: AndroidSettings(accuracy: LocationAccuracy.best));
-
-    _currentPosition = position;
-    _checkProximity(position);
-    _sendRealtimeUpdate(position);
-
-    notifyListeners();
+  /// 📍 Request Permissions (Location, Notifications, Foreground)
+  Future<void> _requestPermissions() async {
+    await [
+      Permission.locationAlways,
+      Permission.locationWhenInUse,
+      Permission.notification,
+      Permission.ignoreBatteryOptimizations,
+    ].request();
   }
 
-  /// Load Locations from SharedPreferences
+  /// 📥 Load Locations from Storage
   Future<void> loadLocations() async {
     final prefs = await SharedPreferences.getInstance();
     final String? locationsString = prefs.getString('saved_locations');
@@ -79,7 +66,7 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
-  /// Save Locations to SharedPreferences
+  /// 💾 Save Locations to Storage
   Future<void> saveLocations() async {
     final prefs = await SharedPreferences.getInstance();
     final String locationsString =
@@ -87,14 +74,14 @@ class LocationProvider with ChangeNotifier {
     prefs.setString('saved_locations', locationsString);
   }
 
-  /// Add Location
+  /// ➕ Add a New Location
   void addLocation(LocationModel location) {
     _locations.add(location);
     saveLocations();
     notifyListeners();
   }
 
-  /// Remove Location
+  /// ❌ Remove Location
   void removeLocation(int index) {
     _locations.removeAt(index);
     if (_selectedLocationIndex == index) {
@@ -104,7 +91,7 @@ class LocationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Select a Location for Tracking
+  /// 🎯 Select Location for Tracking
   void setSelectedLocation(int index) {
     if (index >= 0 && index < _locations.length) {
       _selectedLocationIndex = index;
@@ -112,44 +99,140 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
-  /// Toggle Tracking (Start/Pause)
   void toggleTracking() {
     _isTracking = !_isTracking;
     if (_isTracking) {
       _startTracking();
+      startForegroundService();
     } else {
-      _stopTracking();
+      stopForegroundService();
     }
     notifyListeners();
   }
 
-  /// Start Tracking Every 20 Meters (Even in Background)
+  /// 🚀 **Start Foreground Location Tracking**
+  Future<void> startForegroundService() async {
+    const androidConfig = FlutterBackgroundAndroidConfig(
+      notificationTitle: "WakePoint Tracking",
+      notificationText: "Tracking location in background...",
+      notificationImportance: AndroidNotificationImportance.high,
+      enableWifiLock: true,
+    );
+
+    bool success =
+        await FlutterBackground.initialize(androidConfig: androidConfig);
+    if (success) {
+      FlutterBackground.enableBackgroundExecution();
+      log("✅ Foreground Service Started!");
+    }
+  }
+
+  /// 🛑 **Stop Foreground Location Tracking**
+  void stopForegroundService() {
+    _positionStream?.cancel();
+    _notificationsPlugin.cancel(1);
+    FlutterBackground.disableBackgroundExecution();
+    log('🛑 Foreground Service Stopped');
+    notifyListeners(); // Ensure UI updates properly
+  }
+
+  /// 📍 **Start Location Tracking**
   void _startTracking() {
     if (_selectedLocationIndex != null && _isTracking) {
-      log('Started tracking');
+      log('✅ Started tracking');
       const LocationSettings locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 20, // ✅ Update every 20 meters
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 20, // 🔄 Updates every 20 meters
       );
       _positionStream = Geolocator.getPositionStream(
         locationSettings: locationSettings,
       ).listen((Position position) {
         _currentPosition = position;
-        _checkProximity(position);
         _sendRealtimeUpdate(position);
         notifyListeners();
+        _checkProximity(position);
       });
     }
   }
 
-  /// Stop Tracking and Remove Notification
-  void _stopTracking() {
-    _positionStream?.cancel();
-    _notificationsPlugin.cancel(1); // Remove ongoing tracking notification
-    log('Stopped tracking');
+  /// 🔔 **Send Persistent Notification for Tracking**
+  Future<void> _sendRealtimeUpdate(Position position) async {
+    if (_selectedLocationIndex != null) {
+      final location = _locations[_selectedLocationIndex!];
+      double distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        location.latitude,
+        location.longitude,
+      );
+
+      log("📍 Tracking: ${position.latitude}, ${position.longitude} | Distance: ${distance.toStringAsFixed(2)} meters");
+
+      if (FlutterBackground.isBackgroundExecutionEnabled) {
+        const AndroidNotificationDetails androidDetails =
+            AndroidNotificationDetails(
+          'wakepoint_tracking',
+          'WakePoint Tracking',
+          importance: Importance.high,
+          priority: Priority.high,
+          ongoing: true, // ✅ Persistent Notification
+          autoCancel: false,
+          showWhen: false,
+          onlyAlertOnce: true,
+          actions: <AndroidNotificationAction>[
+            AndroidNotificationAction(
+              'STOP_TRACKING',
+              'Stop Tracking',
+              showsUserInterface: true,
+            ),
+          ],
+        );
+
+        const NotificationDetails notificationDetails =
+            NotificationDetails(android: androidDetails);
+
+        await _notificationsPlugin.show(
+          1,
+          "Tracking Active",
+          "Distance: ${distance.toStringAsFixed(2)} meters",
+          notificationDetails,
+        );
+      }
+    }
   }
 
-  /// Check if User is Near Selected Location
+  /// 🚨 **Trigger Alarm When Near a Location (With Stop Button)**
+  Future<void> _triggerAlarm(LocationModel location) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'wakepoint_alarm',
+      'WakePoint Alarm',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      autoCancel:
+          false, // 🔴 Don't auto-dismiss so user can interact with the button
+      actions: <AndroidNotificationAction>[
+        AndroidNotificationAction(
+          'STOP_TRACKING', // Unique action ID
+          'Stop Tracking', // Button text
+          showsUserInterface: true,
+        ),
+      ],
+    );
+
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidDetails);
+
+    await _notificationsPlugin.show(
+      0,
+      "WakePoint Alert!",
+      "You are near ${location.name}.",
+      notificationDetails,
+    );
+  }
+
+  /// 🛑 **Check Proximity & Trigger Alarm if Needed**
   void _checkProximity(Position position) {
     if (_selectedLocationIndex != null) {
       final location = _locations[_selectedLocationIndex!];
@@ -164,68 +247,5 @@ class LocationProvider with ChangeNotifier {
         _triggerAlarm(location);
       }
     }
-  }
-
-  /// Send Persistent Notification for Real-Time Tracking
-  Future<void> _sendRealtimeUpdate(Position position) async {
-    if (_selectedLocationIndex != null) {
-      final location = _locations[_selectedLocationIndex!];
-      double distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        location.latitude,
-        location.longitude,
-      );
-
-      log("Tracking: ${position.latitude}, ${position.longitude}");
-
-      const AndroidNotificationDetails androidDetails =
-          AndroidNotificationDetails(
-        'wakepoint_tracking',
-        'WakePoint Tracking',
-        importance: Importance.high,
-        priority: Priority.high,
-        ongoing: true, // ✅ Persistent notification
-        autoCancel: false,
-        showWhen: false,
-      );
-
-      const NotificationDetails notificationDetails =
-          NotificationDetails(android: androidDetails);
-
-      await _notificationsPlugin.show(
-        1,
-        "Tracking Active",
-        "Distance: ${distance.toStringAsFixed(2)} meters",
-        notificationDetails,
-      );
-    }
-  }
-
-  /// Trigger Alarm (Notification + Vibration)
-  Future<void> _triggerAlarm(LocationModel location) async {
-    if (await Vibrate.canVibrate) {
-      Vibrate.vibrate();
-    }
-
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'wakepoint_alarm',
-      'WakePoint Alarm',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-      autoCancel: true,
-    );
-
-    const NotificationDetails notificationDetails =
-        NotificationDetails(android: androidDetails);
-
-    await _notificationsPlugin.show(
-      0,
-      "WakePoint Alert!",
-      "You are near ${location.name}.",
-      notificationDetails,
-    );
   }
 }

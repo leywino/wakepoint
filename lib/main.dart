@@ -1,4 +1,3 @@
-import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,8 +7,7 @@ import 'package:wakepoint/pages/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await requestLocationPermissions();
-  BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
+  await _requestPermissions();
   runApp(
     MultiProvider(
       providers: [
@@ -20,17 +18,23 @@ Future<void> main() async {
   );
 }
 
-void backgroundFetchHeadlessTask(String taskId) async {
-  print("Background fetch executed: $taskId");
-  BackgroundFetch.finish(taskId);
+/// **Request ALL Necessary Permissions Before Allowing Access**
+Future<bool> _requestPermissions() async {
+  bool locationGranted = await _requestLocationPermissions();
+  bool notificationsGranted = await _requestNotificationPermissions();
+  bool foregroundServiceGranted = await _requestForegroundServicePermissions();
+
+  return locationGranted && notificationsGranted && foregroundServiceGranted;
 }
 
-Future<void> requestLocationPermissions() async {
+/// **📍 Request Location Permissions**
+Future<bool> _requestLocationPermissions() async {
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
-    print("Location services are disabled.");
-    return;
+    print("❌ Location services are disabled.");
+    return false;
   }
+
   LocationPermission permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
@@ -41,22 +45,111 @@ Future<void> requestLocationPermissions() async {
   }
 
   if (permission == LocationPermission.deniedForever) {
-    print("Location permission is permanently denied.");
+    print("❌ Location permission is permanently denied.");
     openAppSettings();
+    return false;
   }
+
+  return permission == LocationPermission.always ||
+      permission == LocationPermission.whileInUse;
 }
 
-class MainApp extends StatelessWidget {
+/// **🔔 Request Notification Permissions**
+Future<bool> _requestNotificationPermissions() async {
+  PermissionStatus status = await Permission.notification.request();
+  if (status.isDenied) {
+    print("❌ Notification permission denied.");
+    return false;
+  }
+
+  if (status.isPermanentlyDenied) {
+    print("❌ Notification permission permanently denied.");
+    openAppSettings();
+    return false;
+  }
+
+  return status.isGranted;
+}
+
+/// **🛑 Request Foreground Service Permissions (Required for Background Tracking)**
+Future<bool> _requestForegroundServicePermissions() async {
+  PermissionStatus status =
+      await Permission.ignoreBatteryOptimizations.request();
+  if (status.isDenied) {
+    print("❌ Foreground service permission denied.");
+    return false;
+  }
+
+  if (status.isPermanentlyDenied) {
+    print("❌ Foreground service permission permanently denied.");
+    openAppSettings();
+    return false;
+  }
+
+  return status.isGranted;
+}
+
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
 
   @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
-      darkTheme: ThemeData.dark(),
-      theme: ThemeData.light(),
-      home: const HomeScreen(),
+    return FutureBuilder<bool>(
+      future: _requestPermissions(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        if (snapshot.data == false) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "⚠️ Permissions are required to use the app.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () async {
+                        bool granted = await _requestPermissions();
+                        if (granted) {
+                          setState(
+                              () {}); // Refresh UI after granting permissions
+                        }
+                      },
+                      child: const Text("Retry"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.system,
+          darkTheme: ThemeData.dark(),
+          theme: ThemeData.light(),
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }
