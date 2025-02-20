@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_background/flutter_background.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:wakepoint/models/location_model.dart';
 
 class LocationProvider with ChangeNotifier {
@@ -15,6 +15,8 @@ class LocationProvider with ChangeNotifier {
   Position? _currentPosition;
   bool _isTracking = false;
   StreamSubscription<Position>? _positionStream;
+  VoidCallback? onAlarmTriggered;
+  bool alarmTriggered = false;
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -25,7 +27,6 @@ class LocationProvider with ChangeNotifier {
 
   LocationProvider() {
     _initNotifications();
-    _requestPermissions();
     loadLocations();
   }
 
@@ -43,16 +44,6 @@ class LocationProvider with ChangeNotifier {
         }
       },
     );
-  }
-
-  /// 📍 Request Permissions (Location, Notifications, Foreground)
-  Future<void> _requestPermissions() async {
-    await [
-      Permission.locationAlways,
-      Permission.locationWhenInUse,
-      Permission.notification,
-      Permission.ignoreBatteryOptimizations,
-    ].request();
   }
 
   /// 📥 Load Locations from Storage
@@ -133,7 +124,8 @@ class LocationProvider with ChangeNotifier {
     _notificationsPlugin.cancel(1);
     FlutterBackground.disableBackgroundExecution();
     log('🛑 Foreground Service Stopped');
-    notifyListeners(); // Ensure UI updates properly
+    alarmTriggered = false;
+    notifyListeners();
   }
 
   /// 📍 **Start Location Tracking**
@@ -201,28 +193,28 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
-  /// 🚨 **Trigger Alarm When Near a Location (With Stop Button)**
+  void setAlarmCallback(VoidCallback callback) {
+    onAlarmTriggered = callback;
+  }
+
+  /// 🚨 **Trigger Alarm When Near a Location**
   Future<void> _triggerAlarm(LocationModel location) async {
+    // Show full-screen intent notification
+    alarmTriggered = true;
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
       'wakepoint_alarm',
       'WakePoint Alarm',
       importance: Importance.max,
       priority: Priority.high,
+      fullScreenIntent: true, // ✅ Full-screen intent enabled
       playSound: true,
-      autoCancel:
-          false, // 🔴 Don't auto-dismiss so user can interact with the button
-      actions: <AndroidNotificationAction>[
-        AndroidNotificationAction(
-          'STOP_TRACKING', // Unique action ID
-          'Stop Tracking', // Button text
-          showsUserInterface: true,
-        ),
-      ],
+      autoCancel: true,
     );
 
-    const NotificationDetails notificationDetails =
-        NotificationDetails(android: androidDetails);
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
 
     await _notificationsPlugin.show(
       0,
@@ -230,6 +222,17 @@ class LocationProvider with ChangeNotifier {
       "You are near ${location.name}.",
       notificationDetails,
     );
+
+    const platform = MethodChannel('com.leywin.wakepoint/alarm');
+    try {
+      await platform.invokeMethod('startAlarm');
+    } catch (e) {
+      log("Error launching alarm: $e");
+    }
+
+    if (onAlarmTriggered != null) {
+      onAlarmTriggered!();
+    }
   }
 
   /// 🛑 **Check Proximity & Trigger Alarm if Needed**
@@ -243,7 +246,7 @@ class LocationProvider with ChangeNotifier {
         location.longitude,
       );
 
-      if (distance <= 500) {
+      if (distance <= 500 && !alarmTriggered) {
         _triggerAlarm(location);
       }
     }

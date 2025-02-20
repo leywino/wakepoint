@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/pages/add_location_screen.dart';
+import 'package:wakepoint/pages/alarm_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +21,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Provider.of<LocationProvider>(context, listen: false).loadLocations();
+    Provider.of<LocationProvider>(context, listen: false)
+      ..loadLocations()
+      ..setAlarmCallback(
+        () {
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AlarmScreen()),
+            );
+          }
+        },
+      );
   }
 
   void _addLocation() {
@@ -67,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
             actions: _isSelectionMode
                 ? [
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete),
                       onPressed: () =>
                           _deleteSelectedLocations(locationProvider),
                     ),
@@ -76,11 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     IconButton(
                       icon: Icon(
                         locationProvider.isTracking
-                            ? Icons.pause_circle_filled
-                            : Icons.play_circle_fill,
-                        color: locationProvider.isTracking
-                            ? Colors.red
-                            : Colors.green,
+                            ? Icons.pause
+                            : Icons.play_arrow,
                         size: 30,
                       ),
                       onPressed: () {
@@ -127,7 +137,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
 
                             return GestureDetector(
-                              onLongPress: () => _toggleSelectionMode(index),
+                              onLongPress: () {
+                                if (locationProvider.isTracking) {
+                                  Fluttertoast.showToast(
+                                      msg:
+                                          "Please stop tracking before selecting");
+                                  return;
+                                }
+                                _toggleSelectionMode(index);
+                              },
                               onTap: () {
                                 if (_isSelectionMode) {
                                   _toggleSelectionMode(index);
@@ -140,7 +158,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16)),
                                 color: isSelected
-                                    ? Colors.blue.withOpacity(0.3)
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.3)
                                     : null,
                                 child: ListTile(
                                   title: Text(location.name,
@@ -166,24 +187,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         ),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _addLocation,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 15),
-                  ),
-                  icon: const Icon(Icons.add_location_alt),
-                  label: Text(
-                    "Add Location",
-                    style: GoogleFonts.poppins(
-                        fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
               ],
             ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: _addLocation,
+            child: const Icon(Icons.add_location_alt, size: 28),
           ),
         );
       },

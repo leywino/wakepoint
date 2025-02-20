@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
+import 'package:wakepoint/pages/alarm_screen.dart';
 import 'package:wakepoint/pages/home_screen.dart';
 
 Future<void> main() async {
@@ -23,6 +24,7 @@ Future<bool> _requestPermissions() async {
   bool locationGranted = await _requestLocationPermissions();
   bool notificationsGranted = await _requestNotificationPermissions();
   bool foregroundServiceGranted = await _requestForegroundServicePermissions();
+  _requestOverlayPermission();
 
   return locationGranted && notificationsGranted && foregroundServiceGranted;
 }
@@ -69,6 +71,12 @@ Future<bool> _requestNotificationPermissions() async {
   }
 
   return status.isGranted;
+}
+
+Future<void> _requestOverlayPermission() async {
+  if (!await Permission.systemAlertWindow.isGranted) {
+    await Permission.systemAlertWindow.request();
+  }
 }
 
 /// **🛑 Request Foreground Service Permissions (Required for Background Tracking)**
