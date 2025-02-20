@@ -1,3 +1,4 @@
+import 'package:background_fetch/background_fetch.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,6 +9,7 @@ import 'package:wakepoint/pages/home_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await requestLocationPermissions();
+  BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
   runApp(
     MultiProvider(
       providers: [
@@ -16,6 +18,11 @@ Future<void> main() async {
       child: const MainApp(),
     ),
   );
+}
+
+void backgroundFetchHeadlessTask(String taskId) async {
+  print("Background fetch executed: $taskId");
+  BackgroundFetch.finish(taskId);
 }
 
 Future<void> requestLocationPermissions() async {
@@ -44,8 +51,12 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: HomeScreen(),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.system,
+      darkTheme: ThemeData.dark(),
+      theme: ThemeData.light(),
+      home: const HomeScreen(),
     );
   }
 }

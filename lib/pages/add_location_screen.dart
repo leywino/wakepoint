@@ -1,11 +1,12 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
-import 'package:google_places_flutter/model/place_type.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/core/api_key.dart';
 import 'package:wakepoint/models/location_model.dart';
+import 'package:geocoding/geocoding.dart';
 
 class AddLocationScreen extends StatefulWidget {
   const AddLocationScreen({super.key});
@@ -16,106 +17,191 @@ class AddLocationScreen extends StatefulWidget {
 
 class _AddLocationScreenState extends State<AddLocationScreen> {
   final TextEditingController _searchController = TextEditingController();
-  double _radius = 500;
   String? _selectedLocation;
   double? _selectedLat;
   double? _selectedLng;
+  bool _isManualEntry = false;
+
+  void _processManualInput(String input) async {
+    List<String> parts = input.split(",");
+    if (parts.length == 2) {
+      double? lat = double.tryParse(parts[0].trim());
+      double? lng = double.tryParse(parts[1].trim());
+      if (lat != null && lng != null) {
+        try {
+          List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+          String name = placemarks.isNotEmpty
+              ? placemarks.first.locality ?? "Unknown Location"
+              : "Unknown Location";
+          setState(() {
+            _selectedLocation = name;
+            _selectedLat = lat;
+            _selectedLng = lng;
+          });
+        } catch (e) {
+          log("Error retrieving location name: $e");
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context);
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Add Location", style: GoogleFonts.poppins(fontSize: 20)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Search Location:",
-                style: GoogleFonts.poppins(
-                    fontSize: 18, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 10),
-            GooglePlaceAutoCompleteTextField(
-              placeType: PlaceType.cities,
-              textEditingController: _searchController,
-              googleAPIKey: kGoogleMapsApiKey,
-              debounceTime: 800,
-              countries: const ["in"],
-              isLatLngRequired: true,
-              getPlaceDetailWithLatLng: (placeDetail) {
-                setState(() {
-                  _selectedLocation =
-                      placeDetail.structuredFormatting?.mainText ?? "";
-                  _selectedLat = double.parse(placeDetail.lat!);
-                  _selectedLng = double.parse(placeDetail.lng!);
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            if (_selectedLocation != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: () {
+        if (FocusScope.of(context).hasFocus) {
+          FocusScope.of(context).unfocus();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("Add Location", style: GoogleFonts.poppins(fontSize: 20)),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: theme.canvasColor,
+          iconTheme: theme.iconTheme,
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("Selected Location:",
-                      style: GoogleFonts.poppins(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 5),
-                  Text(_selectedLocation!,
-                      style: GoogleFonts.poppins(fontSize: 16)),
-                  Text("Lat: $_selectedLat, Lng: $_selectedLng",
-                      style: GoogleFonts.poppins(
-                          fontSize: 16, color: Colors.grey)),
+                  ChoiceChip(
+                    label: Text("Search", style: GoogleFonts.poppins()),
+                    selected: !_isManualEntry,
+                    onSelected: (selected) =>
+                        setState(() => _isManualEntry = !selected),
+                  ),
+                  const SizedBox(width: 10),
+                  ChoiceChip(
+                    label: Text("Manual Entry", style: GoogleFonts.poppins()),
+                    selected: _isManualEntry,
+                    onSelected: (selected) =>
+                        setState(() => _isManualEntry = selected),
+                  ),
                 ],
               ),
-            const SizedBox(height: 20),
-            Text("Set Alarm Radius (m):",
-                style: GoogleFonts.poppins(
-                    fontSize: 18, fontWeight: FontWeight.w600)),
-            Slider(
-              value: _radius,
-              min: 100,
-              max: 5000,
-              divisions: 50,
-              label: "${_radius.toInt()} m",
-              onChanged: (value) {
-                setState(() {
-                  _radius = value;
-                });
-              },
-            ),
-            const SizedBox(height: 30),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  if (_selectedLocation != null &&
-                      _selectedLat != null &&
-                      _selectedLng != null) {
-                    locationProvider.addLocation(LocationModel(
-                      name: _selectedLocation!,
-                      latitude: _selectedLat!,
-                      longitude: _selectedLng!,
-                    ));
-                    Navigator.pop(context);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+              const SizedBox(height: 15),
+              Container(
+                // Container for consistent styling
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(),
                 ),
-                icon: const Icon(Icons.alarm_add),
-                label: Text(
-                  "Set Alarm",
-                  style: GoogleFonts.poppins(
-                      fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isManualEntry
+                    ? TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          if (value.contains(",")) {
+                            _processManualInput(value);
+                          }
+                        },
+                        keyboardType: TextInputType.text,
+                        decoration: InputDecoration(
+                            hintText: "Paste or enter coordinates (lat,lng)",
+                            hintStyle:
+                                GoogleFonts.poppins(color: theme.hintColor),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(width: 0.5)),
+                            filled: true,
+                            fillColor: theme.cardColor,
+                            prefixIcon: Icon(Icons.pin_drop,
+                                color: theme.iconTheme.color),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    onPressed: () {
+                                      _searchController.clear();
+                                    },
+                                    icon: const Icon(Icons.close))
+                                : null),
+                      )
+                    : GooglePlaceAutoCompleteTextField(
+                        textEditingController: _searchController,
+                        googleAPIKey: kGoogleMapsApiKey,
+                        debounceTime: 800,
+                        countries: const ["in"],
+                        isLatLngRequired: true,
+                        getPlaceDetailWithLatLng: (placeDetail) {
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            setState(() {
+                              _selectedLocation =
+                                  placeDetail.structuredFormatting?.mainText ??
+                                      "";
+                              _selectedLat = double.parse(placeDetail.lat!);
+                              _selectedLng = double.parse(placeDetail.lng!);
+                            });
+                          });
+                        },
+                        inputDecoration: InputDecoration(
+                          hintText: "Enter a city",
+                          hintStyle:
+                              GoogleFonts.poppins(color: theme.hintColor),
+                          border: InputBorder.none,
+                          prefixIcon:
+                              Icon(Icons.search, color: theme.iconTheme.color),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                        ),
+                        itemClick: (postalCodeResponse) {
+                          FocusScope.of(context).unfocus();
+                          _searchController.clear();
+                        },
+                      ),
               ),
-            ),
-          ],
+              const SizedBox(height: 25),
+              if (_selectedLocation != null)
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  color: theme.cardColor,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_selectedLocation!,
+                          style: GoogleFonts.poppins(fontSize: 18)),
+                      Text("Lat: $_selectedLat, Lng: $_selectedLng",
+                          style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color: theme.textTheme.bodySmall?.color)),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 25),
+            ],
+          ),
+        ),
+        floatingActionButton: ElevatedButton.icon(
+          onPressed: () {
+            if (_selectedLocation != null &&
+                _selectedLat != null &&
+                _selectedLng != null) {
+              locationProvider.addLocation(LocationModel(
+                name: _selectedLocation!,
+                latitude: _selectedLat!,
+                longitude: _selectedLng!,isEnabled: true,
+              ));
+              Navigator.pop(context);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+            backgroundColor: theme.colorScheme.primary,
+          ),
+          icon: Icon(Icons.add_alarm, color: theme.colorScheme.onPrimary),
+          label: Text("Set Alarm",
+              style: TextStyle(color: theme.colorScheme.onPrimary)),
         ),
       ),
     );
