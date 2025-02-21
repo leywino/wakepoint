@@ -1,161 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/controller/location_provider.dart';
-import 'package:wakepoint/pages/alarm_screen.dart';
+import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/pages/home_screen.dart';
+import 'package:wakepoint/pages/permission_screen.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await _requestPermissions();
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => LocationProvider()),
-      ],
-      child: const MainApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
-/// **Request ALL Necessary Permissions Before Allowing Access**
-Future<bool> _requestPermissions() async {
-  bool locationGranted = await _requestLocationPermissions();
-  bool notificationsGranted = await _requestNotificationPermissions();
-  bool foregroundServiceGranted = await _requestForegroundServicePermissions();
-  _requestOverlayPermission();
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-  return locationGranted && notificationsGranted && foregroundServiceGranted;
-}
-
-/// **📍 Request Location Permissions**
-Future<bool> _requestLocationPermissions() async {
-  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    print("❌ Location services are disabled.");
-    return false;
+  /// Loads SharedPreferences asynchronously
+  Future<Map<String, dynamic>> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final firstLaunchCompleted =
+        prefs.getBool("first_launch_completed") ?? false;
+    return {
+      "prefs": prefs,
+      "firstLaunchCompleted": firstLaunchCompleted,
+    };
   }
 
-  LocationPermission permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-  }
-
-  if (permission == LocationPermission.whileInUse) {
-    await Permission.locationAlways.request();
-  }
-
-  if (permission == LocationPermission.deniedForever) {
-    print("❌ Location permission is permanently denied.");
-    openAppSettings();
-    return false;
-  }
-
-  return permission == LocationPermission.always ||
-      permission == LocationPermission.whileInUse;
-}
-
-/// **🔔 Request Notification Permissions**
-Future<bool> _requestNotificationPermissions() async {
-  PermissionStatus status = await Permission.notification.request();
-  if (status.isDenied) {
-    print("❌ Notification permission denied.");
-    return false;
-  }
-
-  if (status.isPermanentlyDenied) {
-    print("❌ Notification permission permanently denied.");
-    openAppSettings();
-    return false;
-  }
-
-  return status.isGranted;
-}
-
-Future<void> _requestOverlayPermission() async {
-  if (!await Permission.systemAlertWindow.isGranted) {
-    await Permission.systemAlertWindow.request();
-  }
-}
-
-/// **🛑 Request Foreground Service Permissions (Required for Background Tracking)**
-Future<bool> _requestForegroundServicePermissions() async {
-  PermissionStatus status =
-      await Permission.ignoreBatteryOptimizations.request();
-  if (status.isDenied) {
-    print("❌ Foreground service permission denied.");
-    return false;
-  }
-
-  if (status.isPermanentlyDenied) {
-    print("❌ Foreground service permission permanently denied.");
-    openAppSettings();
-    return false;
-  }
-
-  return status.isGranted;
-}
-
-class MainApp extends StatefulWidget {
-  const MainApp({super.key});
-
-  @override
-  State<MainApp> createState() => _MainAppState();
-}
-
-class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _requestPermissions(),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _loadPreferences(), // Load SharedPreferences in the background
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (!snapshot.hasData) {
           return const MaterialApp(
-            debugShowCheckedModeBanner: false,
-            home: Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        }
-
-        if (snapshot.data == false) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
             home: Scaffold(
               body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "⚠️ Permissions are required to use the app.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () async {
-                        bool granted = await _requestPermissions();
-                        if (granted) {
-                          setState(
-                              () {}); // Refresh UI after granting permissions
-                        }
-                      },
-                      child: const Text("Retry"),
-                    ),
-                  ],
-                ),
-              ),
+                  child:
+                      CircularProgressIndicator()), // Show a loader until data is ready
             ),
           );
         }
 
+        final prefs = snapshot.data!["prefs"] as SharedPreferences;
+        final firstLaunchCompleted =
+            snapshot.data!["firstLaunchCompleted"] as bool;
+
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+                create: (context) => LocationProvider(SettingsProvider(prefs))),
+            ChangeNotifierProvider(
+                create: (context) => SettingsProvider(prefs)),
+          ],
+          child: MainApp(firstLaunchCompleted: firstLaunchCompleted),
+        );
+      },
+    );
+  }
+}
+
+class MainApp extends StatelessWidget {
+  const MainApp({super.key, required this.firstLaunchCompleted});
+
+  final bool firstLaunchCompleted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settingsProvider, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          themeMode: ThemeMode.system,
-          darkTheme: ThemeData.dark(),
-          theme: ThemeData.light(),
-          home: const HomeScreen(),
+          themeMode: ThemeMode.values[settingsProvider.theme.index],
+          darkTheme: ThemeData.dark(useMaterial3: true),
+          theme: ThemeData.light(useMaterial3: true),
+          home: firstLaunchCompleted
+              ? const HomeScreen()
+              : const PermissionScreen(),
         );
       },
     );

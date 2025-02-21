@@ -1,0 +1,2 @@
+C:/Users/leywi/OneDrive/Documents/passion/wakepoint/android/app/.cxx/Debug/wf15475w/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/leywi/OneDrive/Documents/passion/wakepoint/android/app/.cxx/Debug/wf15475w/armeabi-v7a/CMakeFiles/rebuild_cache.dir

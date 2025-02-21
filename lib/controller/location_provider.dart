@@ -7,82 +7,97 @@ import 'package:flutter_background/flutter_background.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 
 class LocationProvider with ChangeNotifier {
+  final SettingsProvider _settingsProvider;
+  double _radius;
   List<LocationModel> _locations = [];
   int? _selectedLocationIndex;
   Position? _currentPosition;
   bool _isTracking = false;
+  bool _alarmTriggered = false;
   StreamSubscription<Position>? _positionStream;
   VoidCallback? onAlarmTriggered;
-  bool alarmTriggered = false;
+
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
+  LocationProvider(this._settingsProvider)
+      : _radius = _settingsProvider.radius {
+    _settingsProvider.addListener(_updateRadius);
+    _initNotifications();
+    _loadLocations();
+  }
+
+  double get radius => _radius;
   List<LocationModel> get locations => _locations;
   int? get selectedLocationIndex => _selectedLocationIndex;
   Position? get currentPosition => _currentPosition;
   bool get isTracking => _isTracking;
 
-  LocationProvider() {
-    _initNotifications();
-    loadLocations();
+  /// 🔄 **Update radius from settings**
+  void _updateRadius() {
+    _radius = _settingsProvider.radius;
+    notifyListeners();
   }
 
-  /// 🔔 Initialize Local Notifications
+  /// 🔔 **Initialize Local Notifications**
   void _initNotifications() {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings settings =
         InitializationSettings(android: androidSettings);
+
     _notificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (response.actionId == 'STOP_TRACKING') {
-          stopForegroundService();
+          stopTracking();
         }
       },
     );
   }
 
-  /// 📥 Load Locations from Storage
-  Future<void> loadLocations() async {
+  /// 📥 **Load Locations from Storage**
+  Future<void> _loadLocations() async {
     final prefs = await SharedPreferences.getInstance();
     final String? locationsString = prefs.getString('saved_locations');
     if (locationsString != null) {
-      final List<dynamic> locationsJson = jsonDecode(locationsString);
-      _locations = locationsJson.map((e) => LocationModel.fromJson(e)).toList();
+      _locations = (jsonDecode(locationsString) as List)
+          .map((e) => LocationModel.fromJson(e))
+          .toList();
       notifyListeners();
     }
   }
 
-  /// 💾 Save Locations to Storage
-  Future<void> saveLocations() async {
+  /// 💾 **Save Locations to Storage**
+  Future<void> _saveLocations() async {
     final prefs = await SharedPreferences.getInstance();
     final String locationsString =
         jsonEncode(_locations.map((e) => e.toJson()).toList());
     prefs.setString('saved_locations', locationsString);
   }
 
-  /// ➕ Add a New Location
+  /// ➕ **Add a New Location**
   void addLocation(LocationModel location) {
     _locations.add(location);
-    saveLocations();
+    _saveLocations();
     notifyListeners();
   }
 
-  /// ❌ Remove Location
+  /// ❌ **Remove Location**
   void removeLocation(int index) {
     _locations.removeAt(index);
     if (_selectedLocationIndex == index) {
       _selectedLocationIndex = null;
     }
-    saveLocations();
+    _saveLocations();
     notifyListeners();
   }
 
-  /// 🎯 Select Location for Tracking
+  /// 🎯 **Select Location for Tracking**
   void setSelectedLocation(int index) {
     if (index >= 0 && index < _locations.length) {
       _selectedLocationIndex = index;
@@ -90,19 +105,20 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
+  /// 🔄 **Toggle Location Tracking**
   void toggleTracking() {
     _isTracking = !_isTracking;
     if (_isTracking) {
       _startTracking();
-      startForegroundService();
+      _startForegroundService();
     } else {
-      stopForegroundService();
+      stopTracking();
     }
     notifyListeners();
   }
 
   /// 🚀 **Start Foreground Location Tracking**
-  Future<void> startForegroundService() async {
+  Future<void> _startForegroundService() async {
     const androidConfig = FlutterBackgroundAndroidConfig(
       notificationTitle: "WakePoint Tracking",
       notificationText: "Tracking location in background...",
@@ -119,77 +135,79 @@ class LocationProvider with ChangeNotifier {
   }
 
   /// 🛑 **Stop Foreground Location Tracking**
-  void stopForegroundService() {
+  void stopTracking() {
     _positionStream?.cancel();
     _notificationsPlugin.cancel(1);
     FlutterBackground.disableBackgroundExecution();
     log('🛑 Foreground Service Stopped');
-    alarmTriggered = false;
+    _alarmTriggered = false;
+    _isTracking = false;
     notifyListeners();
   }
 
   /// 📍 **Start Location Tracking**
   void _startTracking() {
-    if (_selectedLocationIndex != null && _isTracking) {
-      log('✅ Started tracking');
-      const LocationSettings locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 20, // 🔄 Updates every 20 meters
-      );
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen((Position position) {
-        _currentPosition = position;
-        _sendRealtimeUpdate(position);
-        notifyListeners();
-        _checkProximity(position);
-      });
-    }
+    if (_selectedLocationIndex == null || !_isTracking) return;
+
+    log('✅ Started tracking');
+
+    LocationSettings locationSettings = LocationSettings(
+      accuracy: listOfAccuracy[_settingsProvider.trackingAccuracy],
+      distanceFilter: 20, // 🔄 Updates every 20 meters
+    );
+
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((Position position) {
+      _currentPosition = position;
+      _sendRealtimeUpdate(position);
+      notifyListeners();
+      _checkProximity(position);
+    });
   }
 
   /// 🔔 **Send Persistent Notification for Tracking**
   Future<void> _sendRealtimeUpdate(Position position) async {
-    if (_selectedLocationIndex != null) {
-      final location = _locations[_selectedLocationIndex!];
-      double distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        location.latitude,
-        location.longitude,
+    if (_selectedLocationIndex == null) return;
+
+    final location = _locations[_selectedLocationIndex!];
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      location.latitude,
+      location.longitude,
+    );
+
+    log("📍 Tracking: ${position.latitude}, ${position.longitude} | Distance: ${distance.toStringAsFixed(2)} meters");
+
+    if (FlutterBackground.isBackgroundExecutionEnabled) {
+      AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'wakepoint_tracking',
+        'WakePoint Tracking',
+        importance: Importance.high,
+        priority: Priority.high,
+        ongoing: _settingsProvider.persistentNotification,
+        autoCancel: false,
+        showWhen: false,
+        onlyAlertOnce: true,
+        actions: <AndroidNotificationAction>[
+          const AndroidNotificationAction(
+            'STOP_TRACKING',
+            'Stop Tracking',
+            showsUserInterface: true,
+          ),
+        ],
       );
 
-      log("📍 Tracking: ${position.latitude}, ${position.longitude} | Distance: ${distance.toStringAsFixed(2)} meters");
+      NotificationDetails notificationDetails =
+          NotificationDetails(android: androidDetails);
 
-      if (FlutterBackground.isBackgroundExecutionEnabled) {
-        const AndroidNotificationDetails androidDetails =
-            AndroidNotificationDetails(
-          'wakepoint_tracking',
-          'WakePoint Tracking',
-          importance: Importance.high,
-          priority: Priority.high,
-          ongoing: true, // ✅ Persistent Notification
-          autoCancel: false,
-          showWhen: false,
-          onlyAlertOnce: true,
-          actions: <AndroidNotificationAction>[
-            AndroidNotificationAction(
-              'STOP_TRACKING',
-              'Stop Tracking',
-              showsUserInterface: true,
-            ),
-          ],
-        );
-
-        const NotificationDetails notificationDetails =
-            NotificationDetails(android: androidDetails);
-
-        await _notificationsPlugin.show(
-          1,
-          "Tracking Active",
-          "Distance: ${distance.toStringAsFixed(2)} meters",
-          notificationDetails,
-        );
-      }
+      await _notificationsPlugin.show(
+        1,
+        "Tracking Active",
+        "Distance: ${distance.toStringAsFixed(2)} meters",
+        notificationDetails,
+      );
     }
   }
 
@@ -199,15 +217,17 @@ class LocationProvider with ChangeNotifier {
 
   /// 🚨 **Trigger Alarm When Near a Location**
   Future<void> _triggerAlarm(LocationModel location) async {
-    // Show full-screen intent notification
-    alarmTriggered = true;
+    if (_alarmTriggered) return; // Prevent multiple triggers
+
+    _alarmTriggered = true;
+
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
       'wakepoint_alarm',
       'WakePoint Alarm',
       importance: Importance.max,
       priority: Priority.high,
-      fullScreenIntent: true, // ✅ Full-screen intent enabled
+      fullScreenIntent: true,
       playSound: true,
       autoCancel: true,
     );
@@ -223,6 +243,8 @@ class LocationProvider with ChangeNotifier {
       notificationDetails,
     );
 
+    if (_settingsProvider.useOverlayAlarm) return;
+
     const platform = MethodChannel('com.leywin.wakepoint/alarm');
     try {
       await platform.invokeMethod('startAlarm');
@@ -230,25 +252,23 @@ class LocationProvider with ChangeNotifier {
       log("Error launching alarm: $e");
     }
 
-    if (onAlarmTriggered != null) {
-      onAlarmTriggered!();
-    }
+    onAlarmTriggered?.call();
   }
 
   /// 🛑 **Check Proximity & Trigger Alarm if Needed**
   void _checkProximity(Position position) {
-    if (_selectedLocationIndex != null) {
-      final location = _locations[_selectedLocationIndex!];
-      double distance = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        location.latitude,
-        location.longitude,
-      );
+    if (_selectedLocationIndex == null) return;
 
-      if (distance <= 500 && !alarmTriggered) {
-        _triggerAlarm(location);
-      }
+    final location = _locations[_selectedLocationIndex!];
+    double distance = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      location.latitude,
+      location.longitude,
+    );
+
+    if (distance <= _settingsProvider.radius && !_alarmTriggered) {
+      _triggerAlarm(location);
     }
   }
 }

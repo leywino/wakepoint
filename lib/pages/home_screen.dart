@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/pages/add_location_screen.dart';
 import 'package:wakepoint/pages/alarm_screen.dart';
+import 'package:wakepoint/pages/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,24 +22,29 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Provider.of<LocationProvider>(context, listen: false)
-      ..loadLocations()
-      ..setAlarmCallback(
-        () {
-          if (mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const AlarmScreen()),
-            );
-          }
-        },
-      );
+    Provider.of<LocationProvider>(context, listen: false).setAlarmCallback(
+      () {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AlarmScreen()),
+          );
+        }
+      },
+    );
   }
 
   void _addLocation() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const AddLocationScreen()),
+    );
+  }
+
+  void _goToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
     );
   }
 
@@ -86,16 +92,27 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ]
                 : [
-                    IconButton(
-                      icon: Icon(
-                        locationProvider.isTracking
-                            ? Icons.pause
-                            : Icons.play_arrow,
-                        size: 30,
-                      ),
-                      onPressed: () {
-                        locationProvider.toggleTracking();
-                      },
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            locationProvider.isTracking
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                            size: 30,
+                          ),
+                          onPressed: () {
+                            locationProvider.toggleTracking();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.settings,
+                            size: 30,
+                          ),
+                          onPressed: _goToSettings,
+                        ),
+                      ],
                     ),
                   ],
           ),
@@ -106,12 +123,15 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: locationProvider.locations.isEmpty
-                      ? Center(
-                          child: Text(
-                            "There are no alarms, please add a location using the button below.",
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.poppins(
-                                fontSize: 16, color: Colors.grey),
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 30),
+                          child: Center(
+                            child: Text(
+                              "There are no alarms, please add a location using the button below.",
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                  fontSize: 16, color: Colors.grey),
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -161,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ? Theme.of(context)
                                         .colorScheme
                                         .primary
-                                        .withOpacity(0.3)
+                                        .withValues(alpha: 0.3)
                                     : null,
                                 child: ListTile(
                                   title: Text(location.name,

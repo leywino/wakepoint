@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'package:flutter/services.dart';
+// import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
+import 'package:wakepoint/controller/settings_provider.dart';
 
 class AlarmScreen extends StatefulWidget {
   const AlarmScreen({super.key});
@@ -16,12 +18,12 @@ class _AlarmScreenState extends State<AlarmScreen>
   bool _isVibrating = false;
   Timer? _vibrateTimer;
   late AnimationController _iconAnimationController;
+  late SettingsProvider settingsProvider;
 
   @override
   void initState() {
     super.initState();
     _startAlarm();
-
     // Animation for Blinking Alert Icon
     _iconAnimationController = AnimationController(
       vsync: this,
@@ -29,15 +31,22 @@ class _AlarmScreenState extends State<AlarmScreen>
     )..repeat(reverse: true);
   }
 
+  @override
+  void didChangeDependencies() {
+    settingsProvider = Provider.of<SettingsProvider>(context);
+    super.didChangeDependencies();
+  }
+
   void _startAlarm() async {
-    if (await Vibrate.canVibrate) {
+    if (settingsProvider.alarmVibration) {
       _isVibrating = true;
       _vibrateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (_isVibrating) {
-          Vibrate.vibrate();
+          HapticFeedback.vibrate();
         }
       });
     }
+    // FlutterRingtonePlayer().playAlarm();
   }
 
   void _stopAlarm() {
@@ -45,25 +54,18 @@ class _AlarmScreenState extends State<AlarmScreen>
       _isVibrating = false;
       _vibrateTimer?.cancel();
     });
-
+    // FlutterRingtonePlayer().stop();
     _iconAnimationController.dispose();
     Provider.of<LocationProvider>(context, listen: false)
-        .stopForegroundService();
+        .stopTracking();
     Navigator.of(context).pop();
-  }
-
-  @override
-  void dispose() {
-    _vibrateTimer?.cancel();
-    _iconAnimationController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final backgroundColor =
-        theme.colorScheme.surfaceContainerHighest.withOpacity(0.9);
+        theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.9);
     final textColor = theme.colorScheme.onSurface;
 
     return Scaffold(
