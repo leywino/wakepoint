@@ -202,6 +202,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? (value) => settingsProvider.useOverlayAlarm = value
               : null,
           disabled: !_overlayGranted,
+          subtitle: 'Overlay permission is required for this feature',
         ),
       ],
     );
@@ -290,10 +291,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// **Reusable Switch Tile**
   Widget _buildSwitchTile(
       String title, bool value, ValueChanged<bool>? onChanged,
-      {bool disabled = false}) {
+      {bool disabled = false, String? subtitle}) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(title),
+      subtitle: subtitle != null ? Text(subtitle) : null,
       value: value,
       onChanged: disabled ? null : onChanged,
     );
