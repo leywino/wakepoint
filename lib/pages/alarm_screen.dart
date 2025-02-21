@@ -23,18 +23,15 @@ class _AlarmScreenState extends State<AlarmScreen>
   @override
   void initState() {
     super.initState();
-    _startAlarm();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+      _startAlarm();
+    });
     // Animation for Blinking Alert Icon
     _iconAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
-  }
-
-  @override
-  void didChangeDependencies() {
-    settingsProvider = Provider.of<SettingsProvider>(context);
-    super.didChangeDependencies();
   }
 
   void _startAlarm() async {
@@ -56,8 +53,7 @@ class _AlarmScreenState extends State<AlarmScreen>
     });
     // FlutterRingtonePlayer().stop();
     _iconAnimationController.dispose();
-    Provider.of<LocationProvider>(context, listen: false)
-        .stopTracking();
+    Provider.of<LocationProvider>(context, listen: false).stopTracking();
     Navigator.of(context).pop();
   }
 

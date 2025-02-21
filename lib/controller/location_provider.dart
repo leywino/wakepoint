@@ -243,7 +243,7 @@ class LocationProvider with ChangeNotifier {
       notificationDetails,
     );
 
-    if (_settingsProvider.useOverlayAlarm) return;
+    if (!_settingsProvider.useOverlayAlarm) return;
 
     const platform = MethodChannel('com.leywin.wakepoint/alarm');
     try {
@@ -272,3 +272,5 @@ class LocationProvider with ChangeNotifier {
     }
   }
 }
+
+

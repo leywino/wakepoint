@@ -14,3 +14,4 @@ key.properties
 
 
 lib/core/api_key.dart
+android/app/.cxx/

@@ -253,20 +253,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
         ),
 
-        // Alarm Overlay Switch (Disabled if Overlay Permission is not granted)
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text("Use Overlay Alarm"),
-          subtitle: const Text("Only works if overlay permission is granted."),
-          value: _overlayGranted,
-          onChanged: _overlayGranted
-              ? (value) {
-                  setState(() =>
-                      context.read<SettingsProvider>().useOverlayAlarm = value);
-                }
-              : null,
-        ),
-
         const SizedBox(height: 10),
 
         // Battery Optimization Permission
