@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
+import 'package:vibration/vibration.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 
@@ -15,10 +15,9 @@ class AlarmScreen extends StatefulWidget {
 
 class _AlarmScreenState extends State<AlarmScreen>
     with SingleTickerProviderStateMixin {
-  bool _isVibrating = false;
-  Timer? _vibrateTimer;
   late AnimationController _iconAnimationController;
   late SettingsProvider settingsProvider;
+  bool _isVibrating = false;
 
   @override
   void initState() {
@@ -27,6 +26,7 @@ class _AlarmScreenState extends State<AlarmScreen>
       settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
       _startAlarm();
     });
+
     // Animation for Blinking Alert Icon
     _iconAnimationController = AnimationController(
       vsync: this,
@@ -34,26 +34,78 @@ class _AlarmScreenState extends State<AlarmScreen>
     )..repeat(reverse: true);
   }
 
+  /// **Start Alarm with Default Ringtone & Vibration**
   void _startAlarm() async {
     if (settingsProvider.alarmVibration) {
-      _isVibrating = true;
-      _vibrateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (_isVibrating) {
-          HapticFeedback.vibrate();
-        }
-      });
+      _startVibrationPattern();
+    }
+
+    try {
+      await _playDefaultRingtone();
+    } catch (e) {
+      debugPrint("Error playing default ringtone: $e");
     }
   }
 
+  void _startVibrationPattern() {
+    _isVibrating = true;
+
+    List<int> pattern = [
+      0,
+      2000,
+      1000,
+      2000,
+      1000,
+      2000
+    ]; // Start delay, Vibrate, Pause, Vibrate, Pause, Vibrate
+    List<int> amplitudes = [
+      255,
+      255,
+      0,
+      255,
+      0,
+      255
+    ]; // Maximum amplitude for vibration
+
+    void loopVibration() {
+      if (_isVibrating) {
+        Vibration.vibrate(pattern: pattern, intensities: amplitudes);
+        Future.delayed(const Duration(seconds: 7),
+            loopVibration); // Restart after 7 seconds (full pattern length)
+      }
+    }
+
+    loopVibration(); // Start looping
+  }
+
+  /// **Stop Alarm & Cleanup**
   void _stopAlarm() {
     setState(() {
       _isVibrating = false;
-      _vibrateTimer?.cancel();
     });
-    // FlutterRingtonePlayer().stop();
+    Vibration.cancel();
+    _stopRingtone();
     _iconAnimationController.dispose();
     Provider.of<LocationProvider>(context, listen: false).stopTracking();
     Navigator.of(context).pop();
+  }
+
+  Future<void> _playDefaultRingtone() async {
+    const platform = MethodChannel('com.leywin.wakepoint/ringtone');
+    try {
+      await platform.invokeMethod('playRingtone');
+    } on PlatformException catch (e) {
+      debugPrint("Failed to play ringtone: ${e.message}");
+    }
+  }
+
+  Future<void> _stopRingtone() async {
+    const platform = MethodChannel('com.leywin.wakepoint/ringtone');
+    try {
+      await platform.invokeMethod('stopRingtone');
+    } on PlatformException catch (e) {
+      debugPrint("Failed to stop ringtone: ${e.message}");
+    }
   }
 
   @override

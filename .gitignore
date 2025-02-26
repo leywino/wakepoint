@@ -43,4 +43,17 @@ app.*.map.json
 /android/app/release
 /android/app/.cxx
 
+# Gradle-related (auto-generated files)
+android/.gradle/
+android/gradle/
+android/.gradle/**/*
+android/gradle/**/*
+!android/gradle/wrapper/gradle-wrapper.properties
+android/.idea/
+android/.settings/
+
+# Auto-generated Java files (Flutter-related)
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
+# OpenVSCode script
 openvscode.bat
