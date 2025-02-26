@@ -178,6 +178,16 @@ class LocationProvider with ChangeNotifier {
       location.longitude,
     );
 
+    // Convert km to meters
+    double notificationThreshold =
+        _settingsProvider.notificationDistanceThreshold * 1000;
+
+    // If distance-based notifications are enabled and user is beyond threshold, skip notification
+    if (_settingsProvider.isThresholdEnabled &&
+        distance > notificationThreshold) {
+      return;
+    }
+
     // Format distance: show in km if >= 1000m
     String formattedDistance = distance >= 1000
         ? "${(distance / 1000).toStringAsFixed(1)} km"

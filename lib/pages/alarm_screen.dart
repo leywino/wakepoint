@@ -43,7 +43,6 @@ class _AlarmScreenState extends State<AlarmScreen>
         }
       });
     }
-    // FlutterRingtonePlayer().playAlarm();
   }
 
   void _stopAlarm() {

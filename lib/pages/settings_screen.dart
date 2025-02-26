@@ -219,6 +219,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
           (value) => settingsProvider.trackingAccuracy =
               _getTrackingAccuracyFromString(value!),
         ),
+
+        // Switch to Enable/Disable Notification Distance Threshold
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text("Enable Distance-based Notifications"),
+          subtitle: const Text(
+              "Limit notifications to a set distance from destination."),
+          value: settingsProvider.isThresholdEnabled,
+          onChanged: (value) {
+            settingsProvider.isThresholdEnabled = value;
+          },
+        ),
+
+        // Dropdown for Notification Distance Threshold (Disabled when switch is off)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text("Notification Distance Threshold"),
+          subtitle: const Text(
+              "Send real-time tracking notifications only within this distance from your destination."),
+          trailing: DropdownButton<double>(
+            value: settingsProvider.notificationDistanceThreshold,
+            items: [5, 7.5, 10, 12.5, 15].map((e) {
+              return DropdownMenuItem(
+                value: e.toDouble(),
+                child: Text("$e km"),
+              );
+            }).toList(),
+            onChanged: settingsProvider.isThresholdEnabled
+                ? (newValue) {
+                    if (newValue != null) {
+                      settingsProvider.notificationDistanceThreshold = newValue;
+                    }
+                  }
+                : null, // Disable dropdown when switch is off
+          ),
+        ),
       ],
     );
   }

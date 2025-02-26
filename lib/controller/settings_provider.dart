@@ -69,4 +69,23 @@ class SettingsProvider with ChangeNotifier {
     prefs?.setBool('use_overlay_alarm', enable);
     notifyListeners();
   }
+
+  double get notificationDistanceThreshold {
+    return prefs?.getDouble('notification_distance_threshold') ?? 5.0;
+  }
+
+  set notificationDistanceThreshold(double threshold) {
+    prefs?.setDouble('notification_distance_threshold', threshold);
+    notifyListeners();
+  }
+
+  bool get isThresholdEnabled {
+    return prefs?.getBool('enable_notification_threshold') ??
+        false; // Default to false (off)
+  }
+
+  set isThresholdEnabled(bool enable) {
+    prefs?.setBool('enable_notification_threshold', enable);
+    notifyListeners();
+  }
 }
