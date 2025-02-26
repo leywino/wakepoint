@@ -178,7 +178,10 @@ class LocationProvider with ChangeNotifier {
       location.longitude,
     );
 
-    log("📍 Tracking: ${position.latitude}, ${position.longitude} | Distance: ${distance.toStringAsFixed(2)} meters");
+    // Format distance: show in km if >= 1000m
+    String formattedDistance = distance >= 1000
+        ? "${(distance / 1000).toStringAsFixed(1)} km"
+        : "${distance.toStringAsFixed(0)} m";
 
     if (FlutterBackground.isBackgroundExecutionEnabled) {
       AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -205,7 +208,7 @@ class LocationProvider with ChangeNotifier {
       await _notificationsPlugin.show(
         1,
         "Tracking Active",
-        "Distance: ${distance.toStringAsFixed(2)} meters",
+        "Distance: $formattedDistance",
         notificationDetails,
       );
     }
@@ -272,5 +275,3 @@ class LocationProvider with ChangeNotifier {
     }
   }
 }
-
-

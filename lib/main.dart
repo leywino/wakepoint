@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/controller/location_provider.dart';
@@ -8,6 +9,7 @@ import 'package:wakepoint/pages/permission_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterDisplayMode.setHighRefreshRate();
   runApp(const MyApp());
 }
 

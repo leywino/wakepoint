@@ -1,12 +1,12 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/core/api_key.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 
 class AddLocationScreen extends StatefulWidget {
   const AddLocationScreen({super.key});
@@ -21,7 +21,35 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   double? _selectedLat;
   double? _selectedLng;
   bool _isManualEntry = false;
+  bool _isFetchingLocation = false;
 
+  /// **🌍 Get Current Location & Reverse Geocode**
+  Future<void> _useCurrentLocation() async {
+    setState(() => _isFetchingLocation = true);
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          );
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+
+      String locationName = placemarks.isNotEmpty
+          ? placemarks.first.locality ?? "Current Location"
+          : "Current Location";
+
+      setState(() {
+        _selectedLocation = locationName;
+        _selectedLat = position.latitude;
+        _selectedLng = position.longitude;
+        _isFetchingLocation = false;
+      });
+    } catch (e) {
+      log("⚠️ Error fetching location: $e");
+      setState(() => _isFetchingLocation = false);
+    }
+  }
+
+  /// **📝 Process Manual Coordinates Input**
   void _processManualInput(String input) async {
     List<String> parts = input.split(",");
     if (parts.length == 2) {
@@ -39,7 +67,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
             _selectedLng = lng;
           });
         } catch (e) {
-          log("Error retrieving location name: $e");
+          log("⚠️ Error retrieving location name: $e");
         }
       }
     }
@@ -58,7 +86,11 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text("Add Location", style: GoogleFonts.poppins(fontSize: 20)),
+          title: const Text("Add Location",
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 20,
+              )),
           centerTitle: true,
           elevation: 0,
           backgroundColor: theme.canvasColor,
@@ -73,14 +105,16 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ChoiceChip(
-                    label: Text("Search", style: GoogleFonts.poppins()),
+                    label: const Text("Search",
+                        style: TextStyle(fontFamily: 'Poppins')),
                     selected: !_isManualEntry,
                     onSelected: (selected) =>
                         setState(() => _isManualEntry = !selected),
                   ),
                   const SizedBox(width: 10),
                   ChoiceChip(
-                    label: Text("Manual Entry", style: GoogleFonts.poppins()),
+                    label: const Text("Manual Entry",
+                        style: TextStyle(fontFamily: 'Poppins')),
                     selected: _isManualEntry,
                     onSelected: (selected) =>
                         setState(() => _isManualEntry = selected),
@@ -88,8 +122,32 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                 ],
               ),
               const SizedBox(height: 15),
+
+              /// **🌍 "Use Current Location" Button**
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _isFetchingLocation ? null : _useCurrentLocation,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                  ),
+                  icon: const Icon(
+                    Icons.my_location,
+                  ),
+                  label: Text(
+                    _isFetchingLocation
+                        ? "Fetching..."
+                        : "Use Current Location",
+                    style: const TextStyle(fontFamily: 'Poppins'),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+
+              /// **Search Box (Google Places OR Manual Entry)**
               Container(
-                // Container for consistent styling
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(),
@@ -105,15 +163,16 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                         keyboardType: TextInputType.text,
                         decoration: InputDecoration(
                             hintText: "Paste or enter coordinates (lat,lng)",
-                            hintStyle:
-                                GoogleFonts.poppins(color: theme.hintColor),
+                            hintStyle: TextStyle(
+                                fontFamily: 'Poppins', color: theme.hintColor),
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                                 borderSide: const BorderSide(width: 0.5)),
                             filled: true,
                             fillColor: theme.cardColor,
-                            prefixIcon: Icon(Icons.pin_drop,
-                                color: theme.iconTheme.color),
+                            prefixIcon: const Icon(
+                              Icons.pin_drop,
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
                             suffixIcon: _searchController.text.isNotEmpty
@@ -143,8 +202,10 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                         },
                         inputDecoration: InputDecoration(
                           hintText: "Enter a city",
-                          hintStyle:
-                              GoogleFonts.poppins(color: theme.hintColor),
+                          hintStyle: TextStyle(
+                            fontFamily: 'Poppins',
+                            color: theme.hintColor,
+                          ),
                           border: InputBorder.none,
                           prefixIcon:
                               Icon(Icons.search, color: theme.iconTheme.color),
@@ -158,22 +219,29 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                       ),
               ),
               const SizedBox(height: 25),
+
+              /// **📌 Selected Location Preview**
               if (_selectedLocation != null)
                 Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                   color: theme.cardColor,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_selectedLocation!,
-                          style: GoogleFonts.poppins(fontSize: 18)),
-                      Text("Lat: $_selectedLat, Lng: $_selectedLng",
-                          style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              color: theme.textTheme.bodySmall?.color)),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_selectedLocation!,
+                            style: const TextStyle(
+                                fontFamily: 'Poppins', fontSize: 18)),
+                        Text("Lat: $_selectedLat, Lng: $_selectedLng",
+                            style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 16,
+                                color: theme.textTheme.bodySmall?.color)),
+                      ],
+                    ),
                   ),
                 ),
               const SizedBox(height: 25),
@@ -188,20 +256,14 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
               locationProvider.addLocation(LocationModel(
                 name: _selectedLocation!,
                 latitude: _selectedLat!,
-                longitude: _selectedLng!,isEnabled: true,
+                longitude: _selectedLng!,
+                isEnabled: true,
               ));
               Navigator.pop(context);
             }
           },
-          style: ElevatedButton.styleFrom(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-            backgroundColor: theme.colorScheme.primary,
-          ),
-          icon: Icon(Icons.add_alarm, color: theme.colorScheme.onPrimary),
-          label: Text("Set Alarm",
-              style: TextStyle(color: theme.colorScheme.onPrimary)),
+          icon: const Icon(Icons.add_alarm),
+          label: const Text("Set Alarm"),
         ),
       ),
     );

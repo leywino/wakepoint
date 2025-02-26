@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/pages/add_location_screen.dart';
@@ -82,7 +81,8 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, locationProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: Text("WakePoint", style: GoogleFonts.poppins(fontSize: 20)),
+            title: const Text("WakePoint",
+                style: TextStyle(fontFamily: 'Poppins', fontSize: 20)),
             actions: _isSelectionMode
                 ? [
                     IconButton(
@@ -123,14 +123,16 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: locationProvider.locations.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 30),
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 30),
                           child: Center(
                             child: Text(
                               "There are no alarms, please add a location using the button below.",
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                  fontSize: 16, color: Colors.grey),
+                              style: TextStyle(
+                                  fontFamily: 'Poppins',
+                                  fontSize: 16,
+                                  color: Colors.grey),
                             ),
                           ),
                         )
@@ -153,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 location.longitude,
                               );
                               distanceText =
-                                  "Distance: ${distance.toStringAsFixed(2)} m";
+                                  "Distance: ${distance.toStringAsFixed(0)} m";
                             }
 
                             return GestureDetector(
@@ -185,12 +187,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     : null,
                                 child: ListTile(
                                   title: Text(location.name,
-                                      style: GoogleFonts.poppins(fontSize: 16)),
+                                      style: const TextStyle(
+                                          fontFamily: 'Poppins', fontSize: 16)),
                                   subtitle: Text(
                                     isActive
                                         ? "Lat: ${location.latitude}, Lng: ${location.longitude}\n$distanceText"
                                         : "Lat: ${location.latitude}, Lng: ${location.longitude}",
-                                    style: GoogleFonts.poppins(fontSize: 14),
+                                    style: const TextStyle(
+                                        fontFamily: "Poppins", fontSize: 14),
                                   ),
                                   trailing: Radio<int>(
                                     value: index,

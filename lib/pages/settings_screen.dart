@@ -45,7 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      appBar: AppBar(),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
