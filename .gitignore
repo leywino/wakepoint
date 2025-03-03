@@ -52,6 +52,8 @@ android/gradle/**/*
 android/.idea/
 android/.settings/
 
+local.properties
+
 # Auto-generated Java files (Flutter-related)
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 
