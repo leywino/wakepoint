@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-    # Note: filtering on commit message will be done with a conditional below
 
 jobs:
   build-release:
@@ -46,25 +45,11 @@ jobs:
           mv build/app/outputs/flutter-apk/app-x86-release.apk $APP_NAME-x86-v$VERSION.apk || true
           mv build/app/outputs/flutter-apk/app-release.apk $APP_NAME-v$VERSION.apk
 
-      - name: 📜 Generate Changelog
-        id: changelog
-        run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 || echo "")
-          if [ -z "$LATEST_TAG" ]; then
-            git log --pretty=format:"- %s" > full_changelog.md
-          else
-            git log "$LATEST_TAG"..HEAD --pretty=format:"- %s" > full_changelog.md
-          fi
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          cat full_changelog.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: 🚀 Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.changelog }}
           files: |
             wakepoint-arm64-v8a-v${{ steps.version.outputs.version }}.apk
             wakepoint-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
