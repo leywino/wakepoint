@@ -1,6 +1,15 @@
-# WakePoint ⏰🗺️
+<div align="center">
 
+<a href="https://github.com/leywino/wakepoint">
+  <img src="assets/logo.png" alt="WakePoint icon" height="200px" width="200px" />
+</a>
+
+# WakePoint ⏰🗺️  
 **Never miss your stop again. Even when you're fast asleep.**
+
+</div>
+
+---
 
 ## 🚀 About WakePoint
 
@@ -25,8 +34,8 @@ WakePoint is a location-based alarm app designed especially for people who trave
 ## 📸 Screenshots
 
 <p align="left">
-  <img src="screenshots/ss1.png" width="300" alt="Main Screen">
-  <img src="screenshots/ss2.png" width="300" alt="Location Picker">
+  <img src=".github/readme_images/ss1.png" width="300" alt="Main Screen">
+  <img src=".github/readme_images/ss2.png" width="300" alt="Location Picker">
 </p>
 
 ## 💬 Contributing
