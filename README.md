@@ -13,6 +13,7 @@ WakePoint is a location-based alarm app designed especially for people who trave
 - 🎯 **Coordinate Support**: Directly add latitude and longitude as a location point.
 - 🔔 **Wakepoint Alarm**: Get notified when you're approaching your selected stop.
 - ⚙️ **Background Location Tracking**: The app continues to track in the background while you sleep.
+- 🎨 **Material Design UI**: Built with clean and modern Material Design components for a smooth and intuitive user experience.
 - 🛠️ **Still in Development**: Expect improvements, and your bug reports or feature suggestions are highly appreciated.
 
 ## 📱 Use Cases
@@ -20,6 +21,13 @@ WakePoint is a location-based alarm app designed especially for people who trave
 - Long-distance bus/train travelers
 - Power naps during commutes
 - Anyone afraid of missing a destination while asleep
+
+## 📸 Screenshots
+
+<p align="left">
+  <img src="screenshots/ss1.png" width="300" alt="Main Screen">
+  <img src="screenshots/ss2.png" width="300" alt="Location Picker">
+</p>
 
 ## 💬 Contributing
 
@@ -32,4 +40,3 @@ Bug reports, ideas, and feature suggestions are welcome! Open an issue or submit
 ## 📌 License
 
 [MIT License](LICENSE)
-
