@@ -38,12 +38,12 @@ jobs:
       - name: 🏷️ Rename APKs to match naming convention
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          APP_NAME="yourappname"  # Change this to your app's name!
+          APP_NAME="wakepoint"
 
           mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk $APP_NAME-arm64-v8a-v$VERSION.apk
           mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk $APP_NAME-armeabi-v7a-v$VERSION.apk
           mv build/app/outputs/flutter-apk/app-x86_64-release.apk $APP_NAME-x86_64-v$VERSION.apk
-          mv build/app/outputs/flutter-apk/app-x86-release.apk $APP_NAME-x86-v$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-x86-release.apk $APP_NAME-x86-v$VERSION.apk || true
           mv build/app/outputs/flutter-apk/app-release.apk $APP_NAME-v$VERSION.apk
 
       - name: 📜 Generate Changelog
@@ -66,10 +66,10 @@ jobs:
           name: Release v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.changelog }}
           files: |
-            yourappname-arm64-v8a-v${{ steps.version.outputs.version }}.apk
-            yourappname-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
-            yourappname-x86_64-v${{ steps.version.outputs.version }}.apk
-            yourappname-x86-v${{ steps.version.outputs.version }}.apk
-            yourappname-v${{ steps.version.outputs.version }}.apk
+            wakepoint-arm64-v8a-v${{ steps.version.outputs.version }}.apk
+            wakepoint-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
+            wakepoint-x86_64-v${{ steps.version.outputs.version }}.apk
+            wakepoint-x86-v${{ steps.version.outputs.version }}.apk
+            wakepoint-v${{ steps.version.outputs.version }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
