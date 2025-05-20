@@ -1,0 +1,75 @@
+name: Release APK on Tag
+
+on:
+  push:
+    branches:
+      - main
+    # Note: filtering on commit message will be done with a conditional below
+
+jobs:
+  build-release:
+    if: contains(github.event.head_commit.message, 'release v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🔧 Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+
+      - name: 🔄 Get dependencies
+        run: flutter pub get
+
+      - name: 📦 Build APKs (all architectures)
+        run: flutter build apk --split-per-abi
+
+      - name: 📦 Build Universal APK (for confused individuals)
+        run: flutter build apk --target-platform android-arm,android-arm64,android-x64 --split-debug-info=build/symbols
+
+      - name: 🔍 Get tag/version from commit message
+        id: version
+        run: |
+          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'release v\K[0-9]+\.[0-9]+\.[0-9]+')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🏷️ Rename APKs to match naming convention
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          APP_NAME="yourappname"  # Change this to your app's name!
+
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk $APP_NAME-arm64-v8a-v$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk $APP_NAME-armeabi-v7a-v$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-x86_64-release.apk $APP_NAME-x86_64-v$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-x86-release.apk $APP_NAME-x86-v$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-release.apk $APP_NAME-v$VERSION.apk
+
+      - name: 📜 Generate Changelog
+        id: changelog
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 || echo "")
+          if [ -z "$LATEST_TAG" ]; then
+            git log --pretty=format:"- %s" > full_changelog.md
+          else
+            git log "$LATEST_TAG"..HEAD --pretty=format:"- %s" > full_changelog.md
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat full_changelog.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: |
+            yourappname-arm64-v8a-v${{ steps.version.outputs.version }}.apk
+            yourappname-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
+            yourappname-x86_64-v${{ steps.version.outputs.version }}.apk
+            yourappname-x86-v${{ steps.version.outputs.version }}.apk
+            yourappname-v${{ steps.version.outputs.version }}.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
