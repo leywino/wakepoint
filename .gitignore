@@ -42,6 +42,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release 
 /android/app/.cxx
+/android/.kotlin
 
 # Gradle-related (auto-generated files)
 android/.gradle/
@@ -58,3 +59,7 @@ android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 
 # OpenVSCode script
 openvscode.bat
+
+# Secrets & Signing
+*.jks
+android/key.properties

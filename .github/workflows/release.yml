@@ -17,10 +17,21 @@ jobs:
       - name: 🔧 Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.3'
+          flutter-version: '3.32.1'
 
       - name: 🔄 Get dependencies
         run: flutter pub get
+
+      - name: 🔐 Decode and Save Keystore
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+
+      - name: 📝 Create key.properties
+        run: |
+          echo "storePassword=$KEYSTORE_PASSWORD" > android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+          echo "keyAlias=$KEY_ALIAS" >> android/key.properties
+          echo "storeFile=keystore.jks" >> android/key.properties
 
       - name: 📦 Build APKs (all architectures)
         run: flutter build apk --split-per-abi
