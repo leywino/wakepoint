@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/leywino/wakepoint">
-  <img src="assets/logo.png" alt="WakePoint icon" height="200px" width="200px" />
+  <img src=".github/readme_images/white_logo.png" alt="WakePoint icon" height="200px" width="200px" />
 </a>
 
 # WakePoint ⏰🗺️  
@@ -13,7 +13,7 @@
 
 ## 🚀 About WakePoint
 
-WakePoint is a location-based alarm app designed especially for people who travel and tend to fall asleep during their journey. The idea was born out of a personal experience — while working in Kochi, I used to travel home by bus every couple of weeks. These were usually overnight journeys, and I’d often sleep during the ride. One night, I slept through my stop and ended up far from my hometown. That moment sparked the idea for WakePoint.
+WakePoint is a location-based alarm app designed especially for people who travel and tend to fall asleep during their journey. The idea was born out of a personal experience — I used to travel home by bus every couple of weeks. These were usually overnight journeys, and I’d often sleep during the ride. One night, I slept through my stop and ended up far from my hometown. That moment sparked the idea for WakePoint.
 
 ## ✨ Features
 

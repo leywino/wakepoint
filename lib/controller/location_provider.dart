@@ -203,6 +203,7 @@ class LocationProvider with ChangeNotifier {
         autoCancel: false,
         showWhen: false,
         onlyAlertOnce: true,
+        icon: 'ic_stat_notification',
         actions: <AndroidNotificationAction>[
           const AndroidNotificationAction(
             'STOP_TRACKING',
@@ -243,6 +244,7 @@ class LocationProvider with ChangeNotifier {
       fullScreenIntent: true,
       playSound: true,
       autoCancel: true,
+      icon: 'ic_stat_notification',
     );
 
     const NotificationDetails notificationDetails = NotificationDetails(
