@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
@@ -154,8 +156,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 location.latitude,
                                 location.longitude,
                               );
-                              distanceText =
-                                  "Distance: ${distance.toStringAsFixed(0)} m";
+                              if (distance >= 1000) {
+                                distanceText =
+                                    "Distance: ${(distance / 1000).toStringAsFixed(1)} km";
+                              } else {
+                                distanceText =
+                                    "Distance: ${distance.toStringAsFixed(0)} m";
+                              }
                             }
 
                             return GestureDetector(

@@ -16,14 +16,18 @@ class AlarmScreen extends StatefulWidget {
 class _AlarmScreenState extends State<AlarmScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _iconAnimationController;
-  late SettingsProvider settingsProvider;
+  SettingsProvider get settingsProvider =>
+      Provider.of<SettingsProvider>(context, listen: false);
+
+  LocationProvider get locationProvider =>
+      Provider.of<LocationProvider>(context, listen: false);
+
   bool _isVibrating = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
       _startAlarm();
     });
 
@@ -144,11 +148,24 @@ class _AlarmScreenState extends State<AlarmScreen>
             const SizedBox(height: 10),
 
             // Subtext
-            Text(
-              "You are near your destination.",
-              style: theme.textTheme.bodyLarge?.copyWith(color: textColor),
+            RichText(
               textAlign: TextAlign.center,
+              text: TextSpan(
+                style: theme.textTheme.bodyLarge?.copyWith(color: textColor),
+                children: [
+                  const TextSpan(text: "You are near "),
+                  TextSpan(
+                    text: locationProvider.currentSelectedLocation ??
+                        "Unknown Location",
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
+
             const SizedBox(height: 30),
 
             // Dismiss Button

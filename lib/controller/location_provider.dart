@@ -18,6 +18,7 @@ class LocationProvider with ChangeNotifier {
   Position? _currentPosition;
   bool _isTracking = false;
   bool _alarmTriggered = false;
+  String? currentSelectedLocation;
   StreamSubscription<Position>? _positionStream;
   VoidCallback? onAlarmTriggered;
 
@@ -234,6 +235,7 @@ class LocationProvider with ChangeNotifier {
     if (_alarmTriggered) return; // Prevent multiple triggers
 
     _alarmTriggered = true;
+    currentSelectedLocation = location.name;
 
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
