@@ -17,7 +17,7 @@ jobs:
       - name: 🔧 Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.32.6'
 
       - name: 🔄 Get dependencies
         run: flutter pub get
@@ -65,7 +65,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: Release v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
           files: |
             wakepoint-arm64-v8a-v${{ steps.version.outputs.version }}.apk
             wakepoint-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
