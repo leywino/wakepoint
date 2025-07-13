@@ -11,6 +11,7 @@ part 'prediction.g.dart';
 @JsonSerializable()
 class Prediction extends Equatable {
 	final String? reference;
+  @JsonKey(name: 'types') 
 	final List<String>? types;
 	@JsonKey(name: 'matched_substrings') 
 	final List<MatchedSubstring>? matchedSubstrings;

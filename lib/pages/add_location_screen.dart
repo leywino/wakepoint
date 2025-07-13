@@ -1,6 +1,5 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:open_location_code/open_location_code.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/config/constants.dart';
@@ -8,6 +7,11 @@ import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:wakepoint/widgets/ola_auto_complete_textfield.dart';
+import 'package:wakepoint/utils/utils.dart';
+
+const String _logTag = "AddLocationScreen";
+void logHere(String message) => log(message, tag: _logTag);
 
 class AddLocationScreen extends StatefulWidget {
   const AddLocationScreen({super.key});
@@ -30,6 +34,9 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
 
     try {
       Position position = await Geolocator.getCurrentPosition();
+      logHere(
+          "📍 Current position: ${position.latitude}, ${position.longitude}");
+
       List<Placemark> placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
 
@@ -43,8 +50,10 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
         _selectedLng = position.longitude;
         _isFetchingLocation = false;
       });
+
+      logHere("✅ Selected current location: $_selectedLocation");
     } catch (e) {
-      log("⚠️ Error fetching location: $e");
+      logHere("⚠️ Error fetching location: $e");
       setState(() => _isFetchingLocation = false);
     }
   }
@@ -62,12 +71,14 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       if (isLatLng) {
         lat = double.tryParse(parts[0].trim());
         lng = double.tryParse(parts[1].trim());
+        logHere("📥 Manual LatLng input: $lat, $lng");
       } else {
         final plusCode = PlusCode.unverified(input);
         if (plusCode.isValid) {
           final codeArea = plusCode.decode();
           lat = codeArea.center.latitude;
           lng = codeArea.center.longitude;
+          logHere("📥 Plus code decoded to: $lat, $lng");
         }
       }
 
@@ -82,10 +93,18 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
           _selectedLat = lat;
           _selectedLng = lng;
         });
+
+        logHere("✅ Selected manual location: $name");
       }
     } catch (e) {
-      debugPrint("⚠️ Error processing manual input: $e");
+      logHere("⚠️ Error processing manual input: $e");
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -198,38 +217,41 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                                     icon: const Icon(Icons.close))
                                 : null),
                       )
-                    : GooglePlaceAutoCompleteTextField(
-                        textEditingController: _searchController,
-                        googleAPIKey: "kGoogleMapsApiKey",
+                    : OlaAutoCompleteTextField(
+                        controller: _searchController,
+                        apiKey: dotenv.env['OLA_MAPS_API_KEY']!,
                         debounceTime: 800,
-                        countries: const ["in"],
-                        isLatLngRequired: true,
-                        getPlaceDetailWithLatLng: (placeDetail) {
-                          Future.delayed(const Duration(milliseconds: 500), () {
+                        longitude: 75.998688,
+                        latitude: 11.030563,
+                        getPredictionWithLatLng: (location) {
+                          Future.delayed(const Duration(milliseconds: 250), () {
                             setState(() {
-                              _selectedLocation =
-                                  placeDetail.structuredFormatting?.mainText ??
-                                      "";
-                              _selectedLat = double.parse(placeDetail.lat!);
-                              _selectedLng = double.parse(placeDetail.lng!);
+                              _selectedLat = location.lat!.toDouble();
+                              _selectedLng = location.lng!.toDouble();
+                              logHere(
+                                  "📍 Prediction coordinates set: $_selectedLat, $_selectedLng");
                             });
                           });
                         },
-                        inputDecoration: InputDecoration(
+                        decoration: InputDecoration(
                           hintText: hintEnterPlace,
                           hintStyle: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: theme.hintColor,
+                              fontFamily: 'Poppins', color: theme.hintColor),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(width: 0.5)),
+                          filled: true,
+                          fillColor: theme.cardColor,
+                          prefixIcon: const Icon(
+                            Icons.search,
                           ),
-                          border: InputBorder.none,
-                          prefixIcon:
-                              Icon(Icons.search, color: theme.iconTheme.color),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                         ),
-                        itemClick: (postalCodeResponse) {
-                          FocusScope.of(context).unfocus();
-                          _searchController.clear();
+                        itemBuilder: (context, index, prediction) {
+                          return ListTile(
+                            title: Text(prediction.description ?? ''),
+                          );
                         },
                       ),
               ),
@@ -259,7 +281,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                     ),
                   ),
                 ),
-             sizedBoxH25,
+              sizedBoxH25,
             ],
           ),
         ),
@@ -274,6 +296,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                 longitude: _selectedLng!,
                 isEnabled: true,
               ));
+              logHere(
+                  "📌 Location added: $_selectedLocation ($_selectedLat, $_selectedLng)");
               Navigator.pop(context);
             }
           },
