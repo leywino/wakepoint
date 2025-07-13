@@ -1,9 +1,9 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:open_location_code/open_location_code.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
-import 'package:wakepoint/core/api_key.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -28,8 +28,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     setState(() => _isFetchingLocation = true);
 
     try {
-      Position position = await Geolocator.getCurrentPosition(
-          );
+      Position position = await Geolocator.getCurrentPosition();
       List<Placemark> placemarks =
           await placemarkFromCoordinates(position.latitude, position.longitude);
 
@@ -51,25 +50,40 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
 
   /// **📝 Process Manual Coordinates Input**
   void _processManualInput(String input) async {
-    List<String> parts = input.split(",");
-    if (parts.length == 2) {
-      double? lat = double.tryParse(parts[0].trim());
-      double? lng = double.tryParse(parts[1].trim());
-      if (lat != null && lng != null) {
-        try {
-          List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
-          String name = placemarks.isNotEmpty
-              ? placemarks.first.locality ?? "Unknown Location"
-              : "Unknown Location";
-          setState(() {
-            _selectedLocation = name;
-            _selectedLat = lat;
-            _selectedLng = lng;
-          });
-        } catch (e) {
-          log("⚠️ Error retrieving location name: $e");
+    try {
+      double? lat;
+      double? lng;
+
+      final parts = input.split(",");
+      final isLatLng =
+          parts.length == 2 && double.tryParse(parts[0].trim()) != null;
+
+      if (isLatLng) {
+        lat = double.tryParse(parts[0].trim());
+        lng = double.tryParse(parts[1].trim());
+      } else {
+        final plusCode = PlusCode.unverified(input);
+        if (plusCode.isValid) {
+          final codeArea = plusCode.decode();
+          lat = codeArea.center.latitude;
+          lng = codeArea.center.longitude;
         }
       }
+
+      if (lat != null && lng != null) {
+        final placemarks = await placemarkFromCoordinates(lat, lng);
+        final name = placemarks.isNotEmpty
+            ? placemarks.first.locality ?? "Unknown Location"
+            : "Unknown Location";
+
+        setState(() {
+          _selectedLocation = name;
+          _selectedLat = lat;
+          _selectedLng = lng;
+        });
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error processing manual input: $e");
     }
   }
 
@@ -185,7 +199,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                       )
                     : GooglePlaceAutoCompleteTextField(
                         textEditingController: _searchController,
-                        googleAPIKey: kGoogleMapsApiKey,
+                        googleAPIKey: "kGoogleMapsApiKey",
                         debounceTime: 800,
                         countries: const ["in"],
                         isLatLngRequired: true,
