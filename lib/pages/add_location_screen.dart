@@ -7,7 +7,7 @@ import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:wakepoint/widgets/ola_auto_complete_textfield.dart';
+import 'package:wakepoint/widgets/auto_complete_textfield.dart';
 import 'package:wakepoint/utils/utils.dart';
 
 const String _logTag = "AddLocationScreen";
@@ -217,12 +217,13 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                                     icon: const Icon(Icons.close))
                                 : null),
                       )
-                    : OlaAutoCompleteTextField(
+                    : AutoCompleteTextField(
                         controller: _searchController,
                         apiKey: dotenv.env['OLA_MAPS_API_KEY']!,
                         debounceTime: 800,
-                        longitude: 75.998688,
-                        latitude: 11.030563,
+                        longitude:
+                            75.998688, //todo: update with actual longitude
+                        latitude: 11.030563, //todo: update with actual latitude
                         getPredictionWithLatLng: (location) {
                           Future.delayed(const Duration(milliseconds: 250), () {
                             setState(() {
@@ -248,11 +249,6 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                         ),
-                        itemBuilder: (context, index, prediction) {
-                          return ListTile(
-                            title: Text(prediction.description ?? ''),
-                          );
-                        },
                       ),
               ),
               sizedBoxH25,

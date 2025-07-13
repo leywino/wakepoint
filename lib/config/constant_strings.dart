@@ -104,3 +104,7 @@ const String msgBatteryNeededForPersistence =
 // General
 const String btnCancel = "Cancel";
 const String btnOpenSettings = "Open Settings";
+
+
+const String baseUrlOla = "https://api.ola.com/v1";
+const String endpointAutocomplete = "$baseUrlOla/autocomplete";

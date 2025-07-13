@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/models/predictions/predictions.dart';
 import 'package:wakepoint/utils/utils.dart';
 
-const String _logTag = "OlaPlacesService";
+const String _logTag = "PlacesService";
 void logHere(String message) => log(message, tag: _logTag);
 
-class OlaPlacesService {
+class PlacesService {
   final Dio _dio = Dio();
 
   Future<Predictions?> fetchPredictions({
@@ -16,7 +17,7 @@ class OlaPlacesService {
     CancelToken? cancelToken,
   }) async {
     try {
-      String baseUrl = "https://api.olamaps.io/places/v1/autocomplete";
+      String baseUrl = endpointAutocomplete;
       String location =
           (lat != null && lng != null) ? "&location=$lat%2C$lng" : "";
       String types = "&types=locality";

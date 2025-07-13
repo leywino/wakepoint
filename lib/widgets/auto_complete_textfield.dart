@@ -3,37 +3,33 @@ import 'package:dio/dio.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wakepoint/models/predictions/location.dart';
 import 'package:wakepoint/models/predictions/prediction.dart';
-import 'package:wakepoint/models/predictions/predictions.dart';
 import 'package:wakepoint/utils/utils.dart';
+import 'package:wakepoint/services/places_service.dart';
 
-const String _logTag = "OlaAutocomplete";
+const String _logTag = "AutoCompleteTextField";
 void logHere(String message) => log(message, tag: _logTag);
 
-typedef OlaItemClick = void Function(Prediction prediction);
-typedef OlaItemBuilder = Widget Function(
-    BuildContext context, int index, Prediction prediction);
+typedef ItemClick = void Function(Prediction prediction);
 
-class OlaAutoCompleteTextField extends StatefulWidget {
+class AutoCompleteTextField extends StatefulWidget {
   final TextEditingController controller;
   final String apiKey;
   final InputDecoration decoration;
   final TextStyle textStyle;
-  final OlaItemClick? onItemTap;
+  final ItemClick? onItemTap;
   final Function(Location)? getPredictionWithLatLng;
-  final OlaItemBuilder? itemBuilder;
   final double? latitude;
   final double? longitude;
   final bool isCrossBtnShown;
   final int debounceTime;
 
-  const OlaAutoCompleteTextField({
+  const AutoCompleteTextField({
     super.key,
     required this.controller,
     required this.apiKey,
     this.decoration = const InputDecoration(),
     this.textStyle = const TextStyle(),
     this.onItemTap,
-    this.itemBuilder,
     this.latitude,
     this.longitude,
     this.debounceTime = 600,
@@ -42,18 +38,18 @@ class OlaAutoCompleteTextField extends StatefulWidget {
   });
 
   @override
-  State<OlaAutoCompleteTextField> createState() =>
-      _OlaAutoCompleteTextFieldState();
+  State<AutoCompleteTextField> createState() => _AutoCompleteTextFieldState();
 }
 
-class _OlaAutoCompleteTextFieldState extends State<OlaAutoCompleteTextField> {
+class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
   final _subject = PublishSubject<String>();
   final _layerLink = LayerLink();
-  final _dio = Dio();
-  OverlayEntry? _overlayEntry;
+  final _fieldKey = GlobalKey();
+  final PlacesService _placesService = PlacesService();
+
   CancelToken? _cancelToken;
+  OverlayEntry? _overlayEntry;
   List<Prediction> _predictions = [];
-  final GlobalKey _fieldKey = GlobalKey();
   bool isCrossBtn = true;
 
   @override
@@ -65,55 +61,37 @@ class _OlaAutoCompleteTextFieldState extends State<OlaAutoCompleteTextField> {
         .listen(_onSearchChanged);
   }
 
-  void _onSearchChanged(String query) async {
+  Future<void> _onSearchChanged(String query) async {
     if (query.isEmpty) {
       _removeOverlay();
       return;
     }
 
-    String baseUrl = "https://api.olamaps.io/places/v1/autocomplete";
-    String location = (widget.latitude != null && widget.longitude != null)
-        ? "&location=${widget.latitude}%2C${widget.longitude}"
-        : "";
-    String types = "&types=locality";
-
-    String url =
-        "$baseUrl?input=${Uri.encodeComponent(query)}$location$types&api_key=${widget.apiKey}";
-
-    logHere('🔍 Searching for: $query');
-    logHere('🌐 URL: $url');
-
     _cancelToken?.cancel();
     _cancelToken = CancelToken();
 
-    try {
-      final response = await _dio.get(url, cancelToken: _cancelToken);
-      logHere('📥 Raw Response: ${response.data}');
+    final result = await _placesService.fetchPredictions(
+      apiKey: widget.apiKey,
+      query: query,
+      lat: widget.latitude,
+      lng: widget.longitude,
+      cancelToken: _cancelToken,
+    );
 
-      final data = Predictions.fromJson(response.data);
-      logHere('✅ Parsed Predictions Status: ${data.status}');
-      logHere('📊 Prediction Count: ${data.predictions?.length ?? 0}');
-
-      if (data.status == "ok" && data.predictions != null) {
-        _predictions = data.predictions!;
-        logHere('Predictions: ${_predictions.length}');
-        _showOverlay();
-      }
-    } catch (e, s) {
-      logHere('❌ Error fetching predictions: $e');
-      logHere('🔻 Stacktrace: $s');
+    if (result?.status == "ok" && result?.predictions != null) {
+      _predictions = result!.predictions!;
+      logHere('📊 Fetched ${_predictions.length} predictions');
+      _showOverlay();
+    } else {
+      logHere("⚠️ No predictions found or request failed");
       _removeOverlay();
     }
   }
 
   void _showOverlay() {
+    _overlayEntry?.remove();
     _overlayEntry = _createOverlayEntry();
-    if (_overlayEntry != null) {
-      logHere('📤 Inserting overlay with ${_predictions.length} items');
-      Overlay.of(context).insert(_overlayEntry!);
-    } else {
-      logHere('⚠️ OverlayEntry was null or failed');
-    }
+    Overlay.of(context).insert(_overlayEntry!);
   }
 
   void _removeOverlay() {
@@ -125,7 +103,6 @@ class _OlaAutoCompleteTextFieldState extends State<OlaAutoCompleteTextField> {
   OverlayEntry _createOverlayEntry() {
     final renderObject = _fieldKey.currentContext?.findRenderObject();
     if (renderObject is! RenderBox) {
-      logHere('❗ RenderBox not available');
       return OverlayEntry(builder: (_) => const SizedBox());
     }
 
@@ -175,10 +152,7 @@ class _OlaAutoCompleteTextFieldState extends State<OlaAutoCompleteTextField> {
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: Text(
-                      displayText,
-                      style: widget.textStyle,
-                    ),
+                    child: Text(displayText, style: widget.textStyle),
                   ),
                 );
               },
@@ -196,7 +170,7 @@ class _OlaAutoCompleteTextFieldState extends State<OlaAutoCompleteTextField> {
     setState(() {});
   }
 
-  _showCrossIconWidget() {
+  bool _showCrossIconWidget() {
     return widget.controller.text.isNotEmpty;
   }
 
