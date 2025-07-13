@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background/flutter_background.dart';
@@ -9,6 +9,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
+import 'package:wakepoint/utils/utils.dart';
+
+const String _logTag = "LocationProvider";
+void logHere(String message) => log(message, tag: _logTag);
 
 class LocationProvider with ChangeNotifier {
   final SettingsProvider _settingsProvider;
@@ -38,13 +42,11 @@ class LocationProvider with ChangeNotifier {
   Position? get currentPosition => _currentPosition;
   bool get isTracking => _isTracking;
 
-  /// 🔄 **Update radius from settings**
   void _updateRadius() {
     _radius = _settingsProvider.radius;
     notifyListeners();
   }
 
-  /// 🔔 **Initialize Local Notifications**
   void _initNotifications() {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -61,35 +63,36 @@ class LocationProvider with ChangeNotifier {
     );
   }
 
-  /// 📥 **Load Locations from Storage**
   Future<void> _loadLocations() async {
+    logHere('📥 Loading saved locations...');
     final prefs = await SharedPreferences.getInstance();
     final String? locationsString = prefs.getString('saved_locations');
     if (locationsString != null) {
       _locations = (jsonDecode(locationsString) as List)
           .map((e) => LocationModel.fromJson(e))
           .toList();
+      logHere('✅ Loaded ${_locations.length} locations.');
       notifyListeners();
     }
   }
 
-  /// 💾 **Save Locations to Storage**
   Future<void> _saveLocations() async {
+    logHere('💾 Saving ${_locations.length} locations...');
     final prefs = await SharedPreferences.getInstance();
     final String locationsString =
         jsonEncode(_locations.map((e) => e.toJson()).toList());
     prefs.setString('saved_locations', locationsString);
   }
 
-  /// ➕ **Add a New Location**
   void addLocation(LocationModel location) {
+    logHere('➕ Adding location: ${location.name}');
     _locations.add(location);
     _saveLocations();
     notifyListeners();
   }
 
-  /// ❌ **Remove Location**
   void removeLocation(int index) {
+    logHere('❌ Removing location at index: $index');
     _locations.removeAt(index);
     if (_selectedLocationIndex == index) {
       _selectedLocationIndex = null;
@@ -98,17 +101,17 @@ class LocationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🎯 **Select Location for Tracking**
   void setSelectedLocation(int index) {
     if (index >= 0 && index < _locations.length) {
+      logHere('🎯 Selected location index: $index');
       _selectedLocationIndex = index;
       notifyListeners();
     }
   }
 
-  /// 🔄 **Toggle Location Tracking**
   void toggleTracking() {
     _isTracking = !_isTracking;
+    logHere(_isTracking ? '🚀 Enabling tracking...' : '🛑 Disabling tracking...');
     if (_isTracking) {
       _startTracking();
       _startForegroundService();
@@ -118,8 +121,8 @@ class LocationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🚀 **Start Foreground Location Tracking**
   Future<void> _startForegroundService() async {
+    logHere('📡 Initializing foreground service...');
     const androidConfig = FlutterBackgroundAndroidConfig(
       notificationTitle: "WakePoint Tracking",
       notificationText: "Tracking location in background...",
@@ -131,30 +134,30 @@ class LocationProvider with ChangeNotifier {
         await FlutterBackground.initialize(androidConfig: androidConfig);
     if (success) {
       FlutterBackground.enableBackgroundExecution();
-      log("✅ Foreground Service Started!");
+      logHere('✅ Foreground service started.');
+    } else {
+      logHere('❌ Failed to start foreground service.');
     }
   }
 
-  /// 🛑 **Stop Foreground Location Tracking**
   void stopTracking() {
+    logHere('🛑 Stopping location tracking and foreground service...');
     _positionStream?.cancel();
     _notificationsPlugin.cancel(1);
     FlutterBackground.disableBackgroundExecution();
-    log('🛑 Foreground Service Stopped');
     _alarmTriggered = false;
     _isTracking = false;
     notifyListeners();
   }
 
-  /// 📍 **Start Location Tracking**
   void _startTracking() {
     if (_selectedLocationIndex == null || !_isTracking) return;
 
-    log('✅ Started tracking');
+    logHere('📍 Starting location stream...');
 
     LocationSettings locationSettings = LocationSettings(
       accuracy: listOfAccuracy[_settingsProvider.trackingAccuracy],
-      distanceFilter: 20, // 🔄 Updates every 20 meters
+      distanceFilter: 20,
     );
 
     _positionStream = Geolocator.getPositionStream(
@@ -167,8 +170,8 @@ class LocationProvider with ChangeNotifier {
     });
   }
 
-  /// 🔔 **Send Persistent Notification for Tracking**
   Future<void> _sendRealtimeUpdate(Position position) async {
+    logHere('📍 Sending realtime update...');
     if (_selectedLocationIndex == null) return;
 
     final location = _locations[_selectedLocationIndex!];
@@ -179,20 +182,19 @@ class LocationProvider with ChangeNotifier {
       location.longitude,
     );
 
-    // Convert km to meters
     double notificationThreshold =
         _settingsProvider.notificationDistanceThreshold * 1000;
 
-    // If distance-based notifications are enabled and user is beyond threshold, skip notification
-    if (_settingsProvider.isThresholdEnabled &&
-        distance > notificationThreshold) {
+    if (_settingsProvider.isThresholdEnabled && distance > notificationThreshold) {
+      logHere('🔕 Skipped update — outside threshold: ${distance.toStringAsFixed(0)} m');
       return;
     }
 
-    // Format distance: show in km if >= 1000m
     String formattedDistance = distance >= 1000
         ? "${(distance / 1000).toStringAsFixed(1)} km"
         : "${distance.toStringAsFixed(0)} m";
+
+    logHere('📏 Distance to destination: $formattedDistance');
 
     if (FlutterBackground.isBackgroundExecutionEnabled) {
       AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -227,13 +229,14 @@ class LocationProvider with ChangeNotifier {
   }
 
   void setAlarmCallback(VoidCallback callback) {
+    logHere('🔔 Alarm callback set');
     onAlarmTriggered = callback;
   }
 
-  /// 🚨 **Trigger Alarm When Near a Location**
   Future<void> _triggerAlarm(LocationModel location) async {
-    if (_alarmTriggered) return; // Prevent multiple triggers
+    if (_alarmTriggered) return;
 
+    logHere('🚨 Triggering alarm for: ${location.name}');
     _alarmTriggered = true;
     currentSelectedLocation = location.name;
 
@@ -260,20 +263,22 @@ class LocationProvider with ChangeNotifier {
       notificationDetails,
     );
 
+    logHere('📢 WakePoint notification shown for: ${location.name}');
+
     if (!_settingsProvider.useOverlayAlarm) return;
 
     const platform = MethodChannel('com.leywin.wakepoint/alarm');
     try {
       await platform.invokeMethod('startAlarm');
     } catch (e) {
-      log("Error launching alarm: $e");
+      logHere('⚠️ Alarm overlay launch failed: $e');
     }
 
     onAlarmTriggered?.call();
   }
 
-  /// 🛑 **Check Proximity & Trigger Alarm if Needed**
   void _checkProximity(Position position) {
+    logHere('🔎 Checking proximity...');
     if (_selectedLocationIndex == null) return;
 
     final location = _locations[_selectedLocationIndex!];
@@ -284,7 +289,10 @@ class LocationProvider with ChangeNotifier {
       location.longitude,
     );
 
+    logHere('📐 Current distance: ${distance.toStringAsFixed(2)} m');
+
     if (distance <= _settingsProvider.radius && !_alarmTriggered) {
+      logHere('🚨 Within radius, triggering alarm...');
       _triggerAlarm(location);
     }
   }

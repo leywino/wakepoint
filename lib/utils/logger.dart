@@ -2,8 +2,8 @@ import 'dart:developer' as dev;
 
 final Map<String, bool> kFeatureLogs = {
   'OlaAutocomplete': true,
-  'LocationPicker': false,
-  'WakeAlarm': false,
+  'AddLocationScreen': false,
+  'LocationProvider': false,
 };
 
 void log(String message, {String tag = 'General'}) {
