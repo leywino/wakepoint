@@ -103,7 +103,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       builder: (context) => AlertDialog(
         title: Text("$permissionName Required"),
         content: Text(
-         msgPermissionExplanation(permissionName),
+          msgPermissionExplanation(permissionName),
         ),
         actions: [
           TextButton(
@@ -145,7 +145,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
           children: [
             Icon(Icons.rocket_launch_rounded,
                 size: 50, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
+            sizedBoxH16,
             Text(
               titleWelcome,
               style: Theme.of(context)
@@ -153,27 +153,21 @@ class _PermissionScreenState extends State<PermissionScreen> {
                   .headlineSmall
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            sizedBoxH8,
             Text(
               msgPickDefaults,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 30),
+            sizedBoxH30,
 
             // Required Permissions Section
             _buildPermissionCard(
               title: labelRequired,
               permissions: [
-                _buildPermissionTile(
-                    permLocation,
-                    msgLocationRequired,
-                    _locationGranted,
-                    _requestLocationPermission),
-                _buildPermissionTile(
-                    permNotification,
-                    msgNotificationRequired,
-                    _notificationGranted,
-                    _requestNotificationPermission),
+                _buildPermissionTile(permLocation, msgLocationRequired,
+                    _locationGranted, _requestLocationPermission),
+                _buildPermissionTile(permNotification, msgNotificationRequired,
+                    _notificationGranted, _requestNotificationPermission),
               ],
             ),
 
@@ -181,16 +175,10 @@ class _PermissionScreenState extends State<PermissionScreen> {
             _buildPermissionCard(
               title: labelOptional,
               permissions: [
-                _buildPermissionTile(
-                    permBattery,
-                    msgBatteryRecommended,
-                    _batteryGranted,
-                    _requestBatteryPermission),
-                _buildPermissionTile(
-                    permOverlay,
-                    msgOverlayRecommended,
-                    _overlayGranted,
-                    _requestOverlayPermission),
+                _buildPermissionTile(permBattery, msgBatteryRecommended,
+                    _batteryGranted, _requestBatteryPermission),
+                _buildPermissionTile(permOverlay, msgOverlayRecommended,
+                    _overlayGranted, _requestOverlayPermission),
               ],
             ),
 
@@ -226,7 +214,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 10),
+            sizedBoxH10,
             ...permissions,
           ],
         ),

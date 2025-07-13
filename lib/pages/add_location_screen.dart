@@ -126,7 +126,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                     onSelected: (selected) =>
                         setState(() => _isManualEntry = !selected),
                   ),
-                  const SizedBox(width: 10),
+                  sizedBoxW10,
                   ChoiceChip(
                     label: const Text(labelManualEntry,
                         style: TextStyle(fontFamily: 'Poppins')),
@@ -136,7 +136,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 15),
+              sizedBoxH15,
 
               /// **🌍 "Use Current Location" Button**
               Center(
@@ -159,7 +159,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              sizedBoxH15,
 
               /// **Search Box (Google Places OR Manual Entry)**
               Container(
@@ -233,7 +233,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                         },
                       ),
               ),
-              const SizedBox(height: 25),
+              sizedBoxH25,
 
               /// **📌 Selected Location Preview**
               if (_selectedLocation != null)
@@ -259,7 +259,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 25),
+             sizedBoxH25,
             ],
           ),
         ),

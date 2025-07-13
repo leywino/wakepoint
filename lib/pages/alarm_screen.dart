@@ -136,7 +136,7 @@ class _AlarmScreenState extends State<AlarmScreen>
                 color: theme.colorScheme.error,
               ),
             ),
-            const SizedBox(height: 20),
+            sizedBoxH20,
 
             // Alarm Title
             Text(
@@ -146,7 +146,7 @@ class _AlarmScreenState extends State<AlarmScreen>
                 color: textColor,
               ),
             ),
-            const SizedBox(height: 10),
+            sizedBoxH10,
 
             // Subtext
             RichText(
@@ -167,7 +167,7 @@ class _AlarmScreenState extends State<AlarmScreen>
               ),
             ),
 
-            const SizedBox(height: 30),
+            sizedBoxH30,
 
             // Dismiss Button
             ElevatedButton(

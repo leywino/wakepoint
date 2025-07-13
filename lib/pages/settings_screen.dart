@@ -51,20 +51,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16.0),
         children: [
           _buildTitle(),
-          const SizedBox(height: 12),
+         sizedBoxH25,
           _buildSectionTitle(sectionAppearance, theme),
           _buildThemeSelection(settingsProvider),
-          const SizedBox(height: 20),
+          sizedBoxH20,
           _buildSectionTitle(sectionTracking, theme),
           _buildRadiusSlider(settingsProvider),
           _buildTrackingSettings(settingsProvider),
-          const SizedBox(height: 20),
+          sizedBoxH20,
           _buildSectionTitle(sectionAlarm, theme),
           _buildAlarmSettings(settingsProvider),
-          const SizedBox(height: 20),
+          sizedBoxH20,
           _buildSectionTitle(sectionNotifications, theme),
           _buildNotificationSettings(settingsProvider),
-          const SizedBox(height: 20),
+          sizedBoxH20,
           _buildSectionTitle(sectionPermissions, theme),
           _buildPermissionSettings(),
         ],
@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 settingsProvider, ThemeSettings.light, valLightMode),
             _buildThemeOption(
                 settingsProvider, ThemeSettings.dark, valDarkMode),
-            const SizedBox(height: 10),
+            sizedBoxH10,
           ],
         );
       },
@@ -225,8 +225,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text(labelDistanceNotification),
-          subtitle: const Text(
-              descLimitNotifications),
+          subtitle: const Text(descLimitNotifications),
           value: settingsProvider.isThresholdEnabled,
           onChanged: (value) {
             settingsProvider.isThresholdEnabled = value;
@@ -237,8 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text(labelDistanceThreshold),
-          subtitle: const Text(
-              descSendRealTime),
+          subtitle: const Text(descSendRealTime),
           trailing: DropdownButton<double>(
             value: settingsProvider.notificationDistanceThreshold,
             items: [5, 7.5, 10, 12.5, 15].map((e) {
@@ -281,8 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text(permOverlay),
-          subtitle:
-              const Text(msgOverlayNeededForAlerts),
+          subtitle: const Text(msgOverlayNeededForAlerts),
           trailing: _overlayGranted
               ? const Icon(Icons.check_circle, color: Colors.green)
               : ElevatedButton(
@@ -291,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
         ),
 
-        const SizedBox(height: 10),
+        sizedBoxH10,
 
         // Battery Optimization Permission
         ListTile(
