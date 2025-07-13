@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:open_location_code/open_location_code.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:wakepoint/services/location_service.dart';
 import 'package:wakepoint/widgets/auto_complete_textfield.dart';
 import 'package:wakepoint/utils/utils.dart';
 
@@ -25,15 +25,15 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   String? _selectedLocation;
   double? _selectedLat;
   double? _selectedLng;
-  bool _isManualEntry = false;
   bool _isFetchingLocation = false;
+  Position? _initialPosition;
 
   /// **🌍 Get Current Location & Reverse Geocode**
   Future<void> _useCurrentLocation() async {
     setState(() => _isFetchingLocation = true);
 
     try {
-      Position position = await Geolocator.getCurrentPosition();
+      Position position = await LocationService().getCurrentPosition();
       logHere(
           "📍 Current position: ${position.latitude}, ${position.longitude}");
 
@@ -41,7 +41,12 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
           await placemarkFromCoordinates(position.latitude, position.longitude);
 
       String locationName = placemarks.isNotEmpty
-          ? placemarks.first.locality ?? labelCurrentLocation
+          ? [
+              placemarks.first.locality,
+              placemarks.first.administrativeArea,
+              placemarks.first.postalCode,
+              placemarks.first.country
+            ].where((e) => e != null && e.isNotEmpty).join(', ')
           : labelCurrentLocation;
 
       setState(() {
@@ -58,47 +63,33 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     }
   }
 
-  /// **📝 Process Manual Coordinates Input**
-  void _processManualInput(String input) async {
-    try {
-      double? lat;
-      double? lng;
+  void _fetchCurrentLocation() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final stopwatch = Stopwatch()..start();
 
-      final parts = input.split(",");
-      final isLatLng =
-          parts.length == 2 && double.tryParse(parts[0].trim()) != null;
+      try {
+        final position = await LocationService().getCurrentPosition();
+        stopwatch.stop();
 
-      if (isLatLng) {
-        lat = double.tryParse(parts[0].trim());
-        lng = double.tryParse(parts[1].trim());
-        logHere("📥 Manual LatLng input: $lat, $lng");
-      } else {
-        final plusCode = PlusCode.unverified(input);
-        if (plusCode.isValid) {
-          final codeArea = plusCode.decode();
-          lat = codeArea.center.latitude;
-          lng = codeArea.center.longitude;
-          logHere("📥 Plus code decoded to: $lat, $lng");
-        }
-      }
-
-      if (lat != null && lng != null) {
-        final placemarks = await placemarkFromCoordinates(lat, lng);
-        final name = placemarks.isNotEmpty
-            ? placemarks.first.locality ?? labelUnknownLocation
-            : labelUnknownLocation;
+        final durationMs = stopwatch.elapsedMilliseconds;
+        logHere("✅ Fetched current location in ${durationMs}ms: "
+            "${position.latitude}, ${position.longitude}");
 
         setState(() {
-          _selectedLocation = name;
-          _selectedLat = lat;
-          _selectedLng = lng;
+          _initialPosition = position;
         });
-
-        logHere("✅ Selected manual location: $name");
+      } catch (e) {
+        stopwatch.stop();
+        logHere("❌ Failed to fetch current location after "
+            "${stopwatch.elapsedMilliseconds}ms: $e");
       }
-    } catch (e) {
-      logHere("⚠️ Error processing manual input: $e");
-    }
+    });
+  }
+
+  @override
+  void initState() {
+    _fetchCurrentLocation();
+    super.initState();
   }
 
   @override
@@ -119,44 +110,12 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text(labelAddLocation,
-              style: TextStyle(
-                fontFamily: 'Poppins',
-                fontSize: 20,
-              )),
-          centerTitle: true,
-          elevation: 0,
-          backgroundColor: theme.canvasColor,
-          iconTheme: theme.iconTheme,
-        ),
+        appBar: AppBar(),
         body: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ChoiceChip(
-                    label: const Text(labelSearch,
-                        style: TextStyle(fontFamily: 'Poppins')),
-                    selected: !_isManualEntry,
-                    onSelected: (selected) =>
-                        setState(() => _isManualEntry = !selected),
-                  ),
-                  sizedBoxW10,
-                  ChoiceChip(
-                    label: const Text(labelManualEntry,
-                        style: TextStyle(fontFamily: 'Poppins')),
-                    selected: _isManualEntry,
-                    onSelected: (selected) =>
-                        setState(() => _isManualEntry = selected),
-                  ),
-                ],
-              ),
-              sizedBoxH15,
-
               /// **🌍 "Use Current Location" Button**
               Center(
                 child: ElevatedButton.icon(
@@ -180,76 +139,59 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
               ),
               sizedBoxH15,
 
-              /// **Search Box (Google Places OR Manual Entry)**
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(),
+              /// **Search Box (Autocomplete Places OR Manual Entry)**
+              AutoCompleteTextField(
+                controller: _searchController,
+                apiKey: dotenv.env['OLA_MAPS_API_KEY']!,
+                debounceTime: 800,
+                longitude: _initialPosition?.longitude,
+                latitude: _initialPosition?.latitude,
+                decoration: InputDecoration(
+                  hintText: hintEnterPlace,
+                  hintStyle:
+                      TextStyle(fontFamily: 'Poppins', color: theme.hintColor),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(width: 0.5)),
+                  filled: true,
+                  fillColor: theme.cardColor,
+                  prefixIcon: const Icon(
+                    Icons.search,
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
-                child: _isManualEntry
-                    ? TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          if (value.contains(",")) {
-                            _processManualInput(value);
-                          }
-                        },
-                        keyboardType: TextInputType.text,
-                        decoration: InputDecoration(
-                            hintText: hintPasteCoordinates,
-                            hintStyle: TextStyle(
-                                fontFamily: 'Poppins', color: theme.hintColor),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(width: 0.5)),
-                            filled: true,
-                            fillColor: theme.cardColor,
-                            prefixIcon: const Icon(
-                              Icons.pin_drop,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    onPressed: () {
-                                      _searchController.clear();
-                                    },
-                                    icon: const Icon(Icons.close))
-                                : null),
-                      )
-                    : AutoCompleteTextField(
-                        controller: _searchController,
-                        apiKey: dotenv.env['OLA_MAPS_API_KEY']!,
-                        debounceTime: 800,
-                        longitude:
-                            75.998688, //todo: update with actual longitude
-                        latitude: 11.030563, //todo: update with actual latitude
-                        getPredictionWithLatLng: (location) {
-                          Future.delayed(const Duration(milliseconds: 250), () {
-                            setState(() {
-                              _selectedLat = location.lat!.toDouble();
-                              _selectedLng = location.lng!.toDouble();
-                              logHere(
-                                  "📍 Prediction coordinates set: $_selectedLat, $_selectedLng");
-                            });
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: hintEnterPlace,
-                          hintStyle: TextStyle(
-                              fontFamily: 'Poppins', color: theme.hintColor),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(width: 0.5)),
-                          filled: true,
-                          fillColor: theme.cardColor,
-                          prefixIcon: const Icon(
-                            Icons.search,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                        ),
-                      ),
+                onItemTap: (prediction) {
+                  final location = prediction.geometry!.location!;
+                  final locationName = prediction.description;
+
+                  setState(() {
+                    _selectedLocation = locationName;
+                    _selectedLat = location.lat!.toDouble();
+                    _selectedLng = location.lng!.toDouble();
+                    logHere(
+                        "📍 Prediction coordinates set: $_selectedLat, $_selectedLng");
+                  });
+                },
+                onManualLatLngDetected: (lat, lng) async {
+                  final placemarks = await placemarkFromCoordinates(lat, lng);
+                  String locationName = placemarks.isNotEmpty
+                      ? [
+                          placemarks.first.locality,
+                          placemarks.first.administrativeArea,
+                          placemarks.first.postalCode,
+                          placemarks.first.country
+                        ].where((e) => e != null && e.isNotEmpty).join(', ')
+                      : labelCurrentLocation;
+
+                  setState(() {
+                    _selectedLat = lat;
+                    _selectedLng = lng;
+                    _selectedLocation = locationName;
+                  });
+
+                  logHere("✅ Manual coordinates detected and set: $lat, $lng");
+                },
               ),
               sizedBoxH25,
 
@@ -297,8 +239,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
               Navigator.pop(context);
             }
           },
-          icon: const Icon(Icons.add_alarm),
-          label: const Text(labelSetAlarm),
+          icon: const Icon(Icons.add_location),
+          label: const Text(labelAddLocation),
         ),
       ),
     );

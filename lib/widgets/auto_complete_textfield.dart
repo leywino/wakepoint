@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:open_location_code/open_location_code.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wakepoint/models/predictions/location.dart';
 import 'package:wakepoint/models/predictions/prediction.dart';
@@ -18,24 +19,25 @@ class AutoCompleteTextField extends StatefulWidget {
   final TextStyle textStyle;
   final ItemClick? onItemTap;
   final Function(Location)? getPredictionWithLatLng;
+  final void Function(double lat, double lng)? onManualLatLngDetected;
   final double? latitude;
   final double? longitude;
   final bool isCrossBtnShown;
   final int debounceTime;
 
-  const AutoCompleteTextField({
-    super.key,
-    required this.controller,
-    required this.apiKey,
-    this.decoration = const InputDecoration(),
-    this.textStyle = const TextStyle(),
-    this.onItemTap,
-    this.latitude,
-    this.longitude,
-    this.debounceTime = 600,
-    this.isCrossBtnShown = true,
-    this.getPredictionWithLatLng,
-  });
+  const AutoCompleteTextField(
+      {super.key,
+      required this.controller,
+      required this.apiKey,
+      this.decoration = const InputDecoration(),
+      this.textStyle = const TextStyle(),
+      this.onItemTap,
+      this.latitude,
+      this.longitude,
+      this.debounceTime = 600,
+      this.isCrossBtnShown = true,
+      this.getPredictionWithLatLng,
+      this.onManualLatLngDetected});
 
   @override
   State<AutoCompleteTextField> createState() => _AutoCompleteTextFieldState();
@@ -61,12 +63,45 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
         .listen(_onSearchChanged);
   }
 
-  Future<void> _onSearchChanged(String query) async {
-    if (query.isEmpty) {
-      _removeOverlay();
-      return;
-    }
+  bool _handleLatLngInput(String query) {
+    final cleaned = query.replaceAll(RegExp(r'[()\s]'), '');
+    final parts = cleaned.split(',');
 
+    final isLatLng = parts.length == 2 &&
+        double.tryParse(parts[0]) != null &&
+        double.tryParse(parts[1]) != null;
+
+    if (!isLatLng) return false;
+
+    final lat = double.parse(parts[0]);
+    final lng = double.parse(parts[1]);
+
+    logHere("📥 Detected manual coordinates: $lat, $lng");
+    widget.onManualLatLngDetected?.call(lat, lng);
+    _removeOverlay();
+    return true;
+  }
+
+  bool _handlePlusCodeInput(String query) {
+    try {
+      final plusCode = PlusCode.unverified(query);
+      if (!plusCode.isValid) return false;
+
+      final codeArea = plusCode.decode();
+      final lat = codeArea.center.latitude;
+      final lng = codeArea.center.longitude;
+
+      logHere("📥 Decoded Plus Code to: $lat, $lng");
+      widget.onManualLatLngDetected?.call(lat, lng);
+      _removeOverlay();
+      return true;
+    } catch (e) {
+      logHere("❌ Not a valid plus code: $e");
+      return false;
+    }
+  }
+
+  Future<void> _handlePlacePrediction(String query) async {
     _cancelToken?.cancel();
     _cancelToken = CancelToken();
 
@@ -86,6 +121,18 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       logHere("⚠️ No predictions found or request failed");
       _removeOverlay();
     }
+  }
+
+  Future<void> _onSearchChanged(String query) async {
+    if (query.isEmpty) {
+      _removeOverlay();
+      return;
+    }
+
+    if (_handleLatLngInput(query)) return;
+    if (_handlePlusCodeInput(query)) return;
+
+    await _handlePlacePrediction(query);
   }
 
   void _showOverlay() {

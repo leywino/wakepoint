@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/pages/add_location_screen.dart';
 import 'package:wakepoint/pages/alarm_screen.dart';
 import 'package:wakepoint/pages/settings_screen.dart';
+import 'package:wakepoint/services/location_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -149,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             String distanceText = labelNotTracking;
                             if (locationProvider.isTracking &&
                                 locationProvider.currentPosition != null) {
-                              double distance = Geolocator.distanceBetween(
+                              double distance = LocationService().calculateDistance(
                                 locationProvider.currentPosition!.latitude,
                                 locationProvider.currentPosition!.longitude,
                                 location.latitude,

@@ -18,6 +18,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
   bool _batteryGranted = false;
   bool _overlayGranted = false;
 
+
   @override
   void initState() {
     super.initState();

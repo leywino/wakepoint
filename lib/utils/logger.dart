@@ -2,7 +2,7 @@ import 'dart:developer' as dev;
 
 final Map<String, bool> kFeatureLogs = {
   'AutoCompleteTextField': true,
-  'AddLocationScreen': false,
+  'AddLocationScreen': true,
   'LocationProvider': false,
   'PlacesService': true,
 };

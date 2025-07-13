@@ -7,6 +7,7 @@ import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/pages/home_screen.dart';
 import 'package:wakepoint/pages/permission_screen.dart';
+import 'package:wakepoint/services/location_service.dart';
 
 void main()async{
   await dotenv.load(fileName: ".env");
@@ -51,7 +52,8 @@ class MyApp extends StatelessWidget {
         return MultiProvider(
           providers: [
             ChangeNotifierProvider(
-                create: (context) => LocationProvider(SettingsProvider(prefs))),
+                create: (context) => LocationProvider(SettingsProvider(prefs),
+                    LocationService())),
             ChangeNotifierProvider(
                 create: (context) => SettingsProvider(prefs)),
           ],
