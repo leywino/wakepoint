@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
+import 'package:wakepoint/config/constants.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -51,20 +52,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _buildTitle(),
           const SizedBox(height: 12),
-          _buildSectionTitle("Appearance", theme),
+          _buildSectionTitle(sectionAppearance, theme),
           _buildThemeSelection(settingsProvider),
           const SizedBox(height: 20),
-          _buildSectionTitle("Tracking", theme),
+          _buildSectionTitle(sectionTracking, theme),
           _buildRadiusSlider(settingsProvider),
           _buildTrackingSettings(settingsProvider),
           const SizedBox(height: 20),
-          _buildSectionTitle("Alarm Settings", theme),
+          _buildSectionTitle(sectionAlarm, theme),
           _buildAlarmSettings(settingsProvider),
           const SizedBox(height: 20),
-          _buildSectionTitle("Notifications", theme),
+          _buildSectionTitle(sectionNotifications, theme),
           _buildNotificationSettings(settingsProvider),
           const SizedBox(height: 20),
-          _buildSectionTitle("Permissions", theme),
+          _buildSectionTitle(sectionPermissions, theme),
           _buildPermissionSettings(),
         ],
       ),
@@ -73,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildTitle() {
     return const Text(
-      "Settings",
+      sectionSettings,
       style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
     );
   }
@@ -96,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildThemeSelection(SettingsProvider settingsProvider) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: const Text("App Theme"),
+      title: const Text(labelTheme),
       subtitle: Text(
         _getThemeName(settingsProvider.theme),
         style: TextStyle(
@@ -125,11 +126,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text("Select App Theme", style: TextStyle(fontSize: 18)),
             ),
             _buildThemeOption(
-                settingsProvider, ThemeSettings.system, "System Default"),
+                settingsProvider, ThemeSettings.system, valSystemDefault),
             _buildThemeOption(
-                settingsProvider, ThemeSettings.light, "Light Mode"),
+                settingsProvider, ThemeSettings.light, valLightMode),
             _buildThemeOption(
-                settingsProvider, ThemeSettings.dark, "Dark Mode"),
+                settingsProvider, ThemeSettings.dark, valDarkMode),
             const SizedBox(height: 10),
           ],
         );
@@ -155,11 +156,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _getThemeName(ThemeSettings theme) {
     switch (theme) {
       case ThemeSettings.light:
-        return "Light Mode";
+        return valLightMode;
       case ThemeSettings.dark:
-        return "Dark Mode";
+        return valDarkMode;
       default:
-        return "System Default";
+        return valSystemDefault;
     }
   }
 
@@ -169,8 +170,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text("Tracking Radius"),
-          subtitle: Text("${settingsProvider.radius.toInt()} meters"),
+          title: const Text(labelTrackingRadius),
+          subtitle: Text("${settingsProvider.radius.toInt()} $labelMeters"),
         ),
         Slider(
           value: settingsProvider.radius,
@@ -191,18 +192,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: [
         _buildSwitchTile(
-          "Vibration",
+          labelVibration,
           settingsProvider.alarmVibration,
           (value) => settingsProvider.alarmVibration = value,
         ),
         _buildSwitchTile(
-          "Use Overlay Alarm",
+          labelUseOverlayAlarm,
           settingsProvider.useOverlayAlarm,
           _overlayGranted
               ? (value) => settingsProvider.useOverlayAlarm = value
               : null,
           disabled: !_overlayGranted,
-          subtitle: 'Overlay permission is required for this feature',
+          subtitle: msgOverlayRequired,
         ),
       ],
     );
@@ -213,9 +214,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: [
         _buildDropdownTile(
-          "Tracking Accuracy",
+          labelTrackingAccuracy,
           _getTrackingAccuracyLabel(settingsProvider.trackingAccuracy),
-          ["High Accuracy", "Balanced", "Battery Saving"],
+          [valHighAccuracy, valBalanced, valBatterySaving],
           (value) => settingsProvider.trackingAccuracy =
               _getTrackingAccuracyFromString(value!),
         ),
@@ -223,9 +224,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Switch to Enable/Disable Notification Distance Threshold
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text("Enable Distance-based Notifications"),
+          title: const Text(labelDistanceNotification),
           subtitle: const Text(
-              "Limit notifications to a set distance from destination."),
+              descLimitNotifications),
           value: settingsProvider.isThresholdEnabled,
           onChanged: (value) {
             settingsProvider.isThresholdEnabled = value;
@@ -235,9 +236,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Dropdown for Notification Distance Threshold (Disabled when switch is off)
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text("Notification Distance Threshold"),
+          title: const Text(labelDistanceThreshold),
           subtitle: const Text(
-              "Send real-time tracking notifications only within this distance from your destination."),
+              descSendRealTime),
           trailing: DropdownButton<double>(
             value: settingsProvider.notificationDistanceThreshold,
             items: [5, 7.5, 10, 12.5, 15].map((e) {
@@ -264,7 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: [
         _buildSwitchTile(
-          "Persistent Notification",
+          descEnablePersistent,
           settingsProvider.persistentNotification,
           (value) => settingsProvider.persistentNotification = value,
         ),
@@ -279,14 +280,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Overlay Permission
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text("Overlay Permission"),
+          title: const Text(permOverlay),
           subtitle:
-              const Text("Required for displaying alarm over other apps."),
+              const Text(msgOverlayNeededForAlerts),
           trailing: _overlayGranted
               ? const Icon(Icons.check_circle, color: Colors.green)
               : ElevatedButton(
                   onPressed: _requestOverlayPermission,
-                  child: const Text("Grant"),
+                  child: const Text(btnGrant),
                 ),
         ),
 
@@ -295,13 +296,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Battery Optimization Permission
         ListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text("Battery Optimization"),
-          subtitle: const Text("Required to prevent app from being stopped."),
+          title: const Text(permBattery),
+          subtitle: const Text(msgBatteryNeededForPersistence),
           trailing: _batteryGranted
               ? const Icon(Icons.check_circle, color: Colors.green)
               : ElevatedButton(
                   onPressed: _requestBatteryPermission,
-                  child: const Text("Grant"),
+                  child: const Text(btnGrant),
                 ),
         ),
       ],
@@ -340,13 +341,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _getTrackingAccuracyLabel(int trackingAccuracy) {
     switch (trackingAccuracy) {
       case 0:
-        return "High Accuracy";
+        return valHighAccuracy;
       case 1:
-        return "Balanced";
+        return valBalanced;
       case 2:
-        return "Battery Saving";
+        return valBatterySaving;
       default:
-        throw ArgumentError("Invalid accuracy value: $trackingAccuracy");
+        throw ArgumentError(msgInvalidAccuracy(trackingAccuracy.toString()));
     }
   }
 
@@ -359,7 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case "Battery Saving":
         return 2;
       default:
-        throw ArgumentError("Invalid accuracy value: $accuracy");
+        throw ArgumentError(msgInvalidAccuracy(accuracy));
     }
   }
 }

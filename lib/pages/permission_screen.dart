@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/pages/home_screen.dart';
 
 class PermissionScreen extends StatefulWidget {
@@ -59,7 +60,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
         setState(() => _locationGranted = true);
       }
     } else if (permission == LocationPermission.deniedForever) {
-      _openAppSettingsDialog("Location Permission");
+      _openAppSettingsDialog(permLocation);
     } else if (permission == LocationPermission.always) {
       setState(() => _locationGranted = true);
     }
@@ -71,7 +72,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     if (status.isGranted) {
       setState(() => _notificationGranted = true);
     } else if (status.isPermanentlyDenied) {
-      _openAppSettingsDialog("Notification Permission");
+      _openAppSettingsDialog(permNotification);
     }
   }
 
@@ -81,7 +82,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     if (status.isGranted) {
       setState(() => _batteryGranted = true);
     } else if (status.isPermanentlyDenied) {
-      _openAppSettingsDialog("Battery Optimization");
+      _openAppSettingsDialog(permBattery);
     }
   }
 
@@ -91,7 +92,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     if (status.isGranted) {
       setState(() => _overlayGranted = true);
     } else if (status.isPermanentlyDenied) {
-      _openAppSettingsDialog("Overlay Permission");
+      _openAppSettingsDialog(permOverlay);
     }
   }
 
@@ -102,19 +103,19 @@ class _PermissionScreenState extends State<PermissionScreen> {
       builder: (context) => AlertDialog(
         title: Text("$permissionName Required"),
         content: Text(
-          "To enable $permissionName, please open settings and grant the required permission.",
+         msgPermissionExplanation(permissionName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text(btnCancel),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await openAppSettings();
             },
-            child: const Text("Open Settings"),
+            child: const Text(btnOpenSettings),
           ),
         ],
       ),
@@ -146,7 +147,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                 size: 50, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 16),
             Text(
-              "Welcome!",
+              titleWelcome,
               style: Theme.of(context)
                   .textTheme
                   .headlineSmall
@@ -154,23 +155,23 @@ class _PermissionScreenState extends State<PermissionScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              "Let's pick some defaults. You can always change these in settings later.",
+              msgPickDefaults,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 30),
 
             // Required Permissions Section
             _buildPermissionCard(
-              title: "Required",
+              title: labelRequired,
               permissions: [
                 _buildPermissionTile(
-                    "Location Permission",
-                    "To track your location.",
+                    permLocation,
+                    msgLocationRequired,
                     _locationGranted,
                     _requestLocationPermission),
                 _buildPermissionTile(
-                    "Notification Permission",
-                    "For alerts & updates.",
+                    permNotification,
+                    msgNotificationRequired,
                     _notificationGranted,
                     _requestNotificationPermission),
               ],
@@ -178,16 +179,16 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
             // Optional Permissions Section
             _buildPermissionCard(
-              title: "Optional but Recommended",
+              title: labelOptional,
               permissions: [
                 _buildPermissionTile(
-                    "Background Battery Usage",
-                    "Prevent app interruptions.",
+                    permBattery,
+                    msgBatteryRecommended,
                     _batteryGranted,
                     _requestBatteryPermission),
                 _buildPermissionTile(
-                    "Overlay Permission",
-                    "Show alerts over lock screen.",
+                    permOverlay,
+                    msgOverlayRecommended,
                     _overlayGranted,
                     _requestOverlayPermission),
               ],
@@ -204,7 +205,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text("Get Started"),
+              child: const Text(btnGetStarted),
             ),
           ],
         ),
@@ -245,7 +246,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        child: Text(isGranted ? "Granted" : "Grant"),
+        child: Text(isGranted ? labelGranted : btnGrant),
       ),
     );
   }

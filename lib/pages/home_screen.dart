@@ -1,9 +1,8 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/pages/add_location_screen.dart';
 import 'package:wakepoint/pages/alarm_screen.dart';
@@ -83,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, locationProvider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text("WakePoint",
+            title: const Text(appName,
                 style: TextStyle(fontFamily: 'Poppins', fontSize: 20)),
             actions: _isSelectionMode
                 ? [
@@ -129,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 30),
                           child: Center(
                             child: Text(
-                              "There are no alarms, please add a location using the button below.",
+                              msgNoAlarms,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontFamily: 'Poppins',
@@ -147,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 locationProvider.selectedLocationIndex == index;
 
                             // Calculate distance if tracking is active
-                            String distanceText = "Not Tracking";
+                            String distanceText = labelNotTracking;
                             if (locationProvider.isTracking &&
                                 locationProvider.currentPosition != null) {
                               double distance = Geolocator.distanceBetween(
@@ -158,10 +157,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                               if (distance >= 1000) {
                                 distanceText =
-                                    "Distance: ${(distance / 1000).toStringAsFixed(1)} km";
+                                    "$labelDistance ${(distance / 1000).toStringAsFixed(1)} km";
                               } else {
                                 distanceText =
-                                    "Distance: ${distance.toStringAsFixed(0)} m";
+                                    "$labelDistance ${distance.toStringAsFixed(0)} m";
                               }
                             }
 
@@ -170,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 if (locationProvider.isTracking) {
                                   Fluttertoast.showToast(
                                       msg:
-                                          "Please stop tracking before selecting");
+                                          msgStopTrackingFirst);
                                   return;
                                 }
                                 _toggleSelectionMode(index);

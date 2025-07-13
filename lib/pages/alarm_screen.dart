@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:vibration/vibration.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 
@@ -139,7 +140,7 @@ class _AlarmScreenState extends State<AlarmScreen>
 
             // Alarm Title
             Text(
-              "WakePoint Alert!",
+              titleWakePointAlert,
               style: theme.textTheme.headlineLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: textColor,
@@ -153,10 +154,10 @@ class _AlarmScreenState extends State<AlarmScreen>
               text: TextSpan(
                 style: theme.textTheme.bodyLarge?.copyWith(color: textColor),
                 children: [
-                  const TextSpan(text: "You are near "),
+                  const TextSpan(text: msgYouAreNear),
                   TextSpan(
                     text: locationProvider.currentSelectedLocation ??
-                        "Unknown Location",
+                        labelUnknownLocation,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -181,7 +182,7 @@ class _AlarmScreenState extends State<AlarmScreen>
                 shadowColor: Colors.black26,
               ),
               child: Text(
-                "Dismiss Alarm",
+                btnDismissAlarm,
                 style: theme.textTheme.titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),

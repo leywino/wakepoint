@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:open_location_code/open_location_code.dart';
 import 'package:provider/provider.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
@@ -33,8 +34,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
           await placemarkFromCoordinates(position.latitude, position.longitude);
 
       String locationName = placemarks.isNotEmpty
-          ? placemarks.first.locality ?? "Current Location"
-          : "Current Location";
+          ? placemarks.first.locality ?? labelCurrentLocation
+          : labelCurrentLocation;
 
       setState(() {
         _selectedLocation = locationName;
@@ -73,8 +74,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       if (lat != null && lng != null) {
         final placemarks = await placemarkFromCoordinates(lat, lng);
         final name = placemarks.isNotEmpty
-            ? placemarks.first.locality ?? "Unknown Location"
-            : "Unknown Location";
+            ? placemarks.first.locality ?? labelUnknownLocation
+            : labelUnknownLocation;
 
         setState(() {
           _selectedLocation = name;
@@ -100,7 +101,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text("Add Location",
+          title: const Text(labelAddLocation,
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 20,
@@ -119,7 +120,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ChoiceChip(
-                    label: const Text("Search",
+                    label: const Text(labelSearch,
                         style: TextStyle(fontFamily: 'Poppins')),
                     selected: !_isManualEntry,
                     onSelected: (selected) =>
@@ -127,7 +128,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                   ),
                   const SizedBox(width: 10),
                   ChoiceChip(
-                    label: const Text("Manual Entry",
+                    label: const Text(labelManualEntry,
                         style: TextStyle(fontFamily: 'Poppins')),
                     selected: _isManualEntry,
                     onSelected: (selected) =>
@@ -152,8 +153,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                   ),
                   label: Text(
                     _isFetchingLocation
-                        ? "Fetching..."
-                        : "Use Current Location",
+                        ? labelFetching
+                        : hintUseCurrentLocation,
                     style: const TextStyle(fontFamily: 'Poppins'),
                   ),
                 ),
@@ -176,7 +177,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                         },
                         keyboardType: TextInputType.text,
                         decoration: InputDecoration(
-                            hintText: "Paste or enter coordinates (lat,lng)",
+                            hintText: hintPasteCoordinates,
                             hintStyle: TextStyle(
                                 fontFamily: 'Poppins', color: theme.hintColor),
                             border: OutlineInputBorder(
@@ -215,7 +216,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                           });
                         },
                         inputDecoration: InputDecoration(
-                          hintText: "Enter a city",
+                          hintText: hintEnterPlace,
                           hintStyle: TextStyle(
                             fontFamily: 'Poppins',
                             color: theme.hintColor,
@@ -277,7 +278,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
             }
           },
           icon: const Icon(Icons.add_alarm),
-          label: const Text("Set Alarm"),
+          label: const Text(labelSetAlarm),
         ),
       ),
     );
