@@ -1,7 +1,7 @@
 name: wakepoint
 description: "Location-based alarm app to wake you up before your destination — even when offline or asleep."
 publish_to: 'none'
-version: 0.2.0
+version: 0.3.0
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
