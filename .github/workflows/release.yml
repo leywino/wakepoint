@@ -19,6 +19,10 @@ jobs:
         with:
           flutter-version: '3.32.6'
 
+      - name: 📝 Create .env file
+        run: |
+          echo "OLA_MAPS_API_KEY=${{ secrets.OLA_MAPS_API_KEY }}" > .env
+
       - name: 🔄 Get dependencies
         run: flutter pub get
 
@@ -61,11 +65,23 @@ jobs:
           mv build/app/outputs/flutter-apk/app-x86-release.apk $APP_NAME-x86-v$VERSION.apk || true
           mv build/app/outputs/flutter-apk/app-release.apk $APP_NAME-v$VERSION.apk
 
+      - name: 📦 Install conventional-changelog-cli
+        run: npm install -g conventional-changelog-cli
+
+      - name: 📝 Generate changelog for latest tag
+        id: changelog
+        run: |
+          CHANGELOG=$(conventional-changelog -p angular -r 1)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: 🚀 Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
           files: |
             wakepoint-arm64-v8a-v${{ steps.version.outputs.version }}.apk
             wakepoint-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
