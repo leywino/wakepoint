@@ -3,10 +3,12 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
+import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/pages/add_location_screen.dart';
 import 'package:wakepoint/pages/alarm_screen.dart';
 import 'package:wakepoint/pages/settings_screen.dart';
 import 'package:wakepoint/services/location_service.dart';
+import 'package:wakepoint/utils/unit_converter.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -78,8 +80,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<LocationProvider>(
-      builder: (context, locationProvider, child) {
+    return Consumer2<LocationProvider, SettingsProvider>(
+      builder: (context, locationProvider, settingsProvider, child) {
         return Scaffold(
           appBar: AppBar(
             title: const Text(appName,
@@ -145,24 +147,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             final isActive =
                                 locationProvider.selectedLocationIndex == index;
 
-                            // Calculate distance if tracking is active
                             String distanceText = labelNotTracking;
                             if (locationProvider.isTracking &&
                                 locationProvider.currentPosition != null) {
-                              double distance =
+                              double distanceInMeters =
                                   LocationService().calculateDistance(
                                 locationProvider.currentPosition!.latitude,
                                 locationProvider.currentPosition!.longitude,
                                 location.latitude,
                                 location.longitude,
                               );
-                              if (distance >= 1000) {
-                                distanceText =
-                                    "$labelDistance ${(distance / 1000).toStringAsFixed(1)} km";
-                              } else {
-                                distanceText =
-                                    "$labelDistance ${distance.toStringAsFixed(0)} m";
-                              }
+
+                              distanceText =
+                                  "$labelDistance ${UnitConverter.formatDistanceForDisplay(
+                                distanceInMeters,
+                                settingsProvider.preferredUnitSystem,
+                              )}";
                             }
 
                             return GestureDetector(
@@ -198,8 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                           fontSize: 16)),
                                   subtitle: Text(
                                     isActive
-                                        ? "Lat: ${location.latitude}, Lng: ${location.longitude}\n$distanceText"
-                                        : "Lat: ${location.latitude}, Lng: ${location.longitude}",
+                                        ? "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}\n$distanceText"
+                                        : "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}",
                                     style: const TextStyle(
                                         fontFamily: kDefaultFont, fontSize: 14),
                                   ),

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
-import 'package:wakepoint/config/constants.dart'; // Assuming constants.dart includes both constant_sizes and constant_strings
+import 'package:wakepoint/config/constants.dart';
+import 'package:wakepoint/utils/unit_converter.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -27,9 +28,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {});
   }
 
-  Future<void> _requestOverlayPermission() async {
+  Future<void> _requestOverlayPermission(VoidCallback onGranted) async {
     final status = await Permission.systemAlertWindow.request();
-    setState(() => _overlayGranted = status.isGranted);
+    setState(() {
+      _overlayGranted = status.isGranted;
+    });
+    if (status.isGranted) {
+      onGranted.call();
+    }
   }
 
   Future<void> _requestBatteryPermission() async {
@@ -53,6 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             verticalSpaceMedium,
             _buildSectionTitle(sectionGeneral, theme),
             _buildThemeSelection(settingsProvider),
+            _buildUnitSystemSelection(
+                settingsProvider),
             verticalSpaceMedium,
             _buildSectionTitle(sectionTracking, theme),
             _buildTrackingSettings(settingsProvider),
@@ -65,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildNotificationSettings(settingsProvider),
             verticalSpaceMedium,
             _buildSectionTitle(sectionPermissions, theme),
-            _buildPermissionSettings(),
+            _buildPermissionSettings(settingsProvider),
           ],
         ),
       ),
@@ -157,6 +165,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Widget _buildUnitSystemSelection(SettingsProvider settingsProvider) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.straighten),
+      title: const Text(labelUnitSystem),
+      trailing: DropdownButton<UnitSystem>(
+        value: settingsProvider.preferredUnitSystem,
+        items: UnitSystem.values.map((system) {
+          return DropdownMenuItem(
+            value: system,
+            child: Text(UnitConverter.getUnitSystemLabels()[system.index]),
+          );
+        }).toList(),
+        onChanged: (newSystem) {
+          if (newSystem != null) {
+            settingsProvider.preferredUnitSystem = newSystem;
+          }
+        },
+      ),
+    );
+  }
+
   Widget _buildRadiusSetting(
       SettingsProvider settingsProvider, ThemeData theme) {
     int initialIndex = ksRadiusOptions.indexWhere(
@@ -172,7 +202,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "${settingsProvider.alarmRadius.toInt()} $labelMeters",
+            UnitConverter.formatDistanceForDisplay(settingsProvider.alarmRadius,
+                settingsProvider.preferredUnitSystem),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
@@ -200,6 +231,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final currentSettingsProvider =
+                Provider.of<SettingsProvider>(context);
+
             return Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: s16, vertical: s12),
@@ -216,7 +250,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     min: s0,
                     max: (ksRadiusOptions.length - 1).toDouble(),
                     divisions: ksRadiusOptions.length - 1,
-                    label: "${ksRadiusOptions[selectedIndex]} $labelMeters",
+                    label: UnitConverter.formatDistanceForDisplay(
+                        ksRadiusOptions[selectedIndex].toDouble(),
+                        currentSettingsProvider.preferredUnitSystem),
                     onChanged: (double newIndex) {
                       setModalState(() {
                         selectedIndex = newIndex.round();
@@ -224,13 +260,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                   Text(
-                    "${ksRadiusOptions[selectedIndex]} $labelMeters",
+                    UnitConverter.formatDistanceForDisplay(
+                        ksRadiusOptions[selectedIndex].toDouble(),
+                        currentSettingsProvider.preferredUnitSystem),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   sizedBoxH8,
                   ElevatedButton(
                     onPressed: () {
-                      settingsProvider.alarmRadius =
+                      currentSettingsProvider.alarmRadius =
                           ksRadiusOptions[selectedIndex].toDouble();
                       Navigator.pop(context);
                     },
@@ -300,7 +338,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             items: kcDistanceNumberList.map((e) {
               return DropdownMenuItem<double>(
                 value: e,
-                child: Text("$e km"),
+                child: Text(UnitConverter.formatThresholdForDisplay(
+                    e, settingsProvider.preferredUnitSystem)),
               );
             }).toList(),
             onChanged: settingsProvider.isNotificationThresholdEnabled
@@ -321,17 +360,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       children: [
         _buildSwitchTile(
-          labelPersistentNotification, // Changed to persistent notification from description
+          labelPersistentNotification,
           settingsProvider.enablePersistentNotification,
           (value) => settingsProvider.enablePersistentNotification = value,
           icon: Icons.push_pin,
-          subtitle: descEnablePersistent, // Added subtitle here for clarity
+          subtitle: descEnablePersistent,
         ),
       ],
     );
   }
 
-  Widget _buildPermissionSettings() {
+  Widget _buildPermissionSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
         ListTile(
@@ -342,7 +381,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           trailing: _overlayGranted
               ? const Icon(Icons.check_circle, color: Colors.green)
               : ElevatedButton(
-                  onPressed: _requestOverlayPermission,
+                  onPressed: () {
+                    _requestOverlayPermission(
+                      () {
+                        settingsProvider.useOverlayAlarmFeature = true;
+                      },
+                    );
+                  },
                   child: const Text(btnGrant),
                 ),
         ),

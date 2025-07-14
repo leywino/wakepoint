@@ -37,7 +37,7 @@ class LocationProvider with ChangeNotifier {
     _loadLocations();
   }
 
-  double get radius => _radius;
+  double get radius => _radius; 
   List<LocationModel> get locations => _locations;
   int? get selectedLocationIndex => _selectedLocationIndex;
   bool get isTracking => _isTracking;
@@ -124,7 +124,8 @@ class LocationProvider with ChangeNotifier {
 
   void stopTracking() {
     _locationService.stopListening();
-    _notificationsPlugin.cancel(1);
+    _notificationsPlugin.cancel(1); // Cancel the tracking notification
+    _notificationsPlugin.cancel(0); // Cancel the alarm notification
     FlutterBackground.disableBackgroundExecution();
     _alarmTriggered = false;
     _isTracking = false;
@@ -138,7 +139,7 @@ class LocationProvider with ChangeNotifier {
     _locationService.startListening(
       accuracy:
           locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
-      distanceFilter: 20,
+      distanceFilter: 20, // Keep this in meters as distance is in meters
       onUpdate: (position) {
         _sendRealtimeUpdate(position, target);
         _checkProximity(position, target);
@@ -153,20 +154,30 @@ class LocationProvider with ChangeNotifier {
 
   Future<void> _sendRealtimeUpdate(
       Position position, LocationModel target) async {
-    final distance = _locationService.calculateDistance(
+    final distanceInMeters = _locationService.calculateDistance(
       position.latitude,
       position.longitude,
       target.latitude,
       target.longitude,
     );
-    final threshold = _settingsProvider.notificationDistanceThresholdKm * 1000;
+    // Threshold is stored in KM, convert to meters for comparison
+    final thresholdInMeters = _settingsProvider.notificationDistanceThresholdKm * 1000;
 
     if (_settingsProvider.isNotificationThresholdEnabled &&
-        distance > threshold) return;
+        distanceInMeters > thresholdInMeters) {
+      logHere('Distance ($distanceInMeters m) is above notification threshold ($thresholdInMeters m). Not sending update.');
+      // Optional: Clear previous notification if it was showing a closer distance
+      // to avoid stale info when outside threshold.
+      _notificationsPlugin.cancel(1);
+      return;
+    }
 
-    final formatted = await _locationService.formatDistance(
-      distance: distance,
+    // Use UnitConverter to format the distance based on the user's preferred unit system
+    final formattedDistance = UnitConverter.formatDistanceForDisplay(
+      distanceInMeters,
+      _settingsProvider.preferredUnitSystem,
     );
+
     if (!FlutterBackground.isBackgroundExecutionEnabled) return;
 
     const androidDetails = AndroidNotificationDetails(
@@ -174,10 +185,10 @@ class LocationProvider with ChangeNotifier {
       'WakePoint Tracking',
       importance: Importance.high,
       priority: Priority.high,
-      ongoing: true,
-      autoCancel: false,
+      ongoing: true, // Indicates a persistent notification
+      autoCancel: false, // Prevents auto-cancellation on tap
       showWhen: false,
-      onlyAlertOnce: true,
+      onlyAlertOnce: true, // This is for the notification channel, not the notification itself
       icon: 'ic_stat_notification',
       actions: [
         AndroidNotificationAction(
@@ -191,7 +202,7 @@ class LocationProvider with ChangeNotifier {
     const details = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
-        1, 'Tracking Active', 'Distance: $formatted', details);
+        1, 'Tracking Active', 'Distance: $formattedDistance', details); // Use formattedDistance
   }
 
   Future<void> _triggerAlarm(LocationModel location) async {
@@ -233,8 +244,15 @@ class LocationProvider with ChangeNotifier {
       target.latitude,
       target.longitude,
     );
+    // _radius is already in meters, so direct comparison is fine here.
     if (distance <= _radius && !_alarmTriggered) {
       _triggerAlarm(target);
     }
+  }
+
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_updateRadius);
+    super.dispose();
   }
 }

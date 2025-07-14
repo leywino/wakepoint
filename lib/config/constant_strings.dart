@@ -73,6 +73,11 @@ const String valSystemDefault = "System Default";
 const String valLightMode = "Light Mode";
 const String valDarkMode = "Dark Mode";
 
+//Units
+const String labelUnitSystem = "Units";
+const String labelMetric = "Metric (meters, kilometers)";
+const String labelImperial = "Imperial (yards, miles)";
+
 // Tracking
 const String labelTrackingRadius = "Alarm Trigger Radius";
 const String labelMeters = "meters";

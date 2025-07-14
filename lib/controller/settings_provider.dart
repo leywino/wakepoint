@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppTheme { system, light, dark }
 
+enum UnitSystem { metric, imperial }
+
 List<LocationAccuracy> locationAccuracyOptions = [
   LocationAccuracy.best,
   LocationAccuracy.medium,
@@ -85,6 +87,16 @@ class SettingsProvider with ChangeNotifier {
 
   set isNotificationThresholdEnabled(bool enable) {
     _prefs?.setBool('is_notification_threshold_enabled', enable);
+    notifyListeners();
+  }
+
+  UnitSystem get preferredUnitSystem {
+    final int? unitIndex = _prefs?.getInt('preferred_unit_system');
+    return UnitSystem.values[unitIndex ?? UnitSystem.metric.index];
+  }
+
+  set preferredUnitSystem(UnitSystem system) {
+    _prefs?.setInt('preferred_unit_system', system.index);
     notifyListeners();
   }
 }
