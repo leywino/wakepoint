@@ -26,7 +26,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     _checkPermissions();
   }
 
-  /// **Check all permissions on screen load**
+  /// Check all permissions on screen load
   Future<void> _checkPermissions() async {
     _locationGranted =
         await Geolocator.checkPermission() == LocationPermission.always;
@@ -37,7 +37,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     setState(() {});
   }
 
-  /// **Request Location Permission using Geolocator**
+  /// Request Location Permission using Geolocator
   Future<void> _requestLocationPermission() async {
     final permission = await Geolocator.checkPermission();
 
@@ -49,7 +49,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
         setState(() => _locationGranted = true);
       }
 
-      // If only whileInUse is granted, request locationAlways
       if (newPermission == LocationPermission.whileInUse) {
         final alwaysStatus = await Permission.locationAlways.request();
         if (alwaysStatus.isGranted) {
@@ -68,7 +67,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// **Request Notification Permission**
+  /// Request Notification Permission
   Future<void> _requestNotificationPermission() async {
     final status = await Permission.notification.request();
     if (status.isGranted) {
@@ -78,7 +77,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// **Request Battery Optimization Permission**
+  /// Request Battery Optimization Permission
   Future<void> _requestBatteryPermission() async {
     final status = await Permission.ignoreBatteryOptimizations.request();
     if (status.isGranted) {
@@ -88,7 +87,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// **Request Overlay Permission**
+  /// Request Overlay Permission
   Future<void> _requestOverlayPermission() async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -103,14 +102,18 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// **Dialog for opening App Settings when permission is permanently denied**
+  /// Dialog for opening App Settings when permission is permanently denied
   void _openAppSettingsDialog(String permissionName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("$permissionName Required"),
+        title: Text(
+          "$permissionName Required",
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         content: Text(
           msgPermissionExplanation(permissionName),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         actions: [
           TextButton(
@@ -129,7 +132,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// **Save first launch & navigate to home screen**
+  /// Save first launch & navigate to home screen
   Future<void> _completeSetup() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool("first_launch_completed", true);
@@ -146,29 +149,16 @@ class _PermissionScreenState extends State<PermissionScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        padding: const EdgeInsets.symmetric(horizontal: s20, vertical: s40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.rocket_launch_rounded,
-                size: 50, color: Theme.of(context).colorScheme.primary),
-            sizedBoxH16,
-            Text(
-              titleWelcome,
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            sizedBoxH8,
-            Text(
-              msgPickDefaults,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            sizedBoxH30,
-
-            // Required Permissions Section
-            _buildPermissionCard(
+            _buildHeader(),
+            verticalSpaceTiny,
+            _buildDescription(context),
+            verticalSpaceMassive,
+            _buildPermissionSection(
+              context,
               title: labelRequired,
               permissions: [
                 _buildPermissionTile(permLocation, msgLocationRequired,
@@ -177,9 +167,9 @@ class _PermissionScreenState extends State<PermissionScreen> {
                     _notificationGranted, _requestNotificationPermission),
               ],
             ),
-
-            // Optional Permissions Section
-            _buildPermissionCard(
+            verticalSpaceMedium,
+            _buildPermissionSection(
+              context,
               title: labelOptional,
               permissions: [
                 _buildPermissionTile(permBattery, msgBatteryRecommended,
@@ -188,40 +178,65 @@ class _PermissionScreenState extends State<PermissionScreen> {
                     _overlayGranted, _requestOverlayPermission),
               ],
             ),
-
             const Spacer(),
-
-            // Get Started Button
-            ElevatedButton(
-              onPressed: isMandatoryGranted ? _completeSetup : null,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-              ),
-              child: const Text(btnGetStarted),
-            ),
+            _buildGetStartedButton(isMandatoryGranted),
           ],
         ),
       ),
     );
   }
 
-  /// **Build Permission Card**
-  Widget _buildPermissionCard(
+  /// Helper to build the header with icon and title
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.rocket_launch_rounded,
+          size: s50,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        verticalSpaceMedium,
+        Text(
+          titleWelcome,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontFamily: kDefaultFont,
+              ),
+        ),
+      ],
+    );
+  }
+
+  /// Helper to build the descriptive text
+  Widget _buildDescription(BuildContext context) {
+    return Text(
+      msgPickDefaults,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            fontFamily: kDefaultFont,
+          ),
+    );
+  }
+
+  /// Helper to build a section of permissions (e.g., Required or Optional)
+  Widget _buildPermissionSection(BuildContext context,
       {required String title, required List<Widget> permissions}) {
     return Card(
-      elevation: 2,
+      elevation: s2,
       clipBehavior: Clip.hardEdge,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(s12)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: s10, vertical: s12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            sizedBoxH10,
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontFamily: kDefaultFont,
+                  ),
+            ),
+            verticalSpaceSmall,
             ...permissions,
           ],
         ),
@@ -229,19 +244,50 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// **Build Permission Tile**
+  /// Helper to build a single permission tile
   Widget _buildPermissionTile(String title, String description, bool isGranted,
       VoidCallback onPressed) {
     return ListTile(
-      title: Text(title),
-      subtitle: Text(description),
+      title: Text(
+        title,
+        style: const TextStyle(fontFamily: kDefaultFont),
+      ),
+      subtitle: Text(
+        description,
+        style: const TextStyle(fontFamily: kDefaultFont),
+      ),
       trailing: ElevatedButton(
         onPressed: isGranted ? null : onPressed,
         style: ElevatedButton.styleFrom(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(s16)),
+          padding: const EdgeInsets.symmetric(horizontal: s12, vertical: s8),
+          minimumSize: const Size(s80, s30),
         ),
-        child: Text(isGranted ? labelGranted : btnGrant),
+        child: Text(
+          isGranted ? labelGranted : btnGrant,
+          style: const TextStyle(fontSize: s14),
+        ),
+      ),
+    );
+  }
+
+  /// Helper to build the "Get Started" button
+  Widget _buildGetStartedButton(bool isMandatoryGranted) {
+    return ElevatedButton(
+      onPressed: isMandatoryGranted ? _completeSetup : null,
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: s15),
+        minimumSize: const Size(double.infinity, s50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(s16)),
+      ),
+      child: const Text(
+        btnGetStarted,
+        style: TextStyle(
+          fontSize: s18,
+          fontWeight: FontWeight.bold,
+          fontFamily: kDefaultFont,
+        ),
       ),
     );
   }

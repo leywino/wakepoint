@@ -9,7 +9,7 @@ import 'package:wakepoint/pages/home_screen.dart';
 import 'package:wakepoint/pages/permission_screen.dart';
 import 'package:wakepoint/services/location_service.dart';
 
-void main()async{
+void main() async {
   await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
   FlutterDisplayMode.setHighRefreshRate();
@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
             home: Scaffold(
               body: Center(
                   child:
-                      CircularProgressIndicator()), // Show a loader until data is ready
+                      CircularProgressIndicator()),
             ),
           );
         }
@@ -52,8 +52,8 @@ class MyApp extends StatelessWidget {
         return MultiProvider(
           providers: [
             ChangeNotifierProvider(
-                create: (context) => LocationProvider(SettingsProvider(prefs),
-                    LocationService())),
+                create: (context) => LocationProvider(
+                    SettingsProvider(prefs), LocationService())),
             ChangeNotifierProvider(
                 create: (context) => SettingsProvider(prefs)),
           ],
