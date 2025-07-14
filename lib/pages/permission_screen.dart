@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/config/constants.dart';
+import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/pages/home_screen.dart';
 
 class PermissionScreen extends StatefulWidget {
@@ -17,7 +19,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
   bool _notificationGranted = false;
   bool _batteryGranted = false;
   bool _overlayGranted = false;
-
 
   @override
   void initState() {
@@ -89,9 +90,14 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
   /// **Request Overlay Permission**
   Future<void> _requestOverlayPermission() async {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     final status = await Permission.systemAlertWindow.request();
     if (status.isGranted) {
-      setState(() => _overlayGranted = true);
+      setState(() {
+        _overlayGranted = true;
+        settingsProvider.useOverlayAlarmFeature = true;
+      });
     } else if (status.isPermanentlyDenied) {
       _openAppSettingsDialog(permOverlay);
     }
