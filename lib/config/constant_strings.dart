@@ -1,3 +1,5 @@
+//constant_strings.dart
+
 // App
 const String appName = "WakePoint";
 
@@ -59,7 +61,7 @@ const String btnGrant = "Grant";
 
 // Settings Sections
 const String sectionSettings = "Settings";
-const String sectionAppearance = "Appearance";
+const String sectionGeneral = "General";
 const String sectionTracking = "Tracking";
 const String sectionAlarm = "Alarm Settings";
 const String sectionNotifications = "Notifications";
@@ -72,12 +74,14 @@ const String valLightMode = "Light Mode";
 const String valDarkMode = "Dark Mode";
 
 // Tracking
-const String labelTrackingRadius = "Tracking Radius";
+const String labelTrackingRadius = "Alarm Trigger Radius";
 const String labelMeters = "meters";
 const String labelVibration = "Vibration";
 const String labelUseOverlayAlarm = "Use Overlay Alarm";
+const String labelSelectRadius = "Select Alarm Radius";
 const String msgOverlayRequired =
     "Overlay permission is required for this feature";
+const String btnApply = "Apply";
 
 // Accuracy
 const String labelTrackingAccuracy = "Tracking Accuracy";
@@ -87,12 +91,12 @@ const String valBatterySaving = "Battery Saving";
 String msgInvalidAccuracy(String value) => "Invalid accuracy value: $value";
 
 // Notifications
-const String labelDistanceNotification = "Enable Distance-based Notifications";
-const String labelDistanceThreshold = "Notification Distance Threshold";
+const String labelDistanceNotification = "Distance-Based Notifications";
+const String labelDistanceThreshold = "Notification Trigger Distance";
 const String descLimitNotifications =
-    "Limit notifications to a set distance from destination.";
+    "Receive alerts only when you're within a set distance from your destination.";
 const String descSendRealTime =
-    "Send real-time tracking notifications only within this distance from your destination.";
+    "Real-time notifications will be sent only within this distance.";
 const String labelPersistentNotification = "Persistent Notification";
 const String descEnablePersistent =
     "Enable Persistent Notification to keep the app running in the background.";

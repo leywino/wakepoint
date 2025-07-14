@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text(appName,
-                style: TextStyle(fontFamily: 'Poppins', fontSize: 20)),
+                style: TextStyle(fontFamily: kDefaultFont, fontSize: 20)),
             actions: _isSelectionMode
                 ? [
                     IconButton(
@@ -131,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               msgNoAlarms,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontFamily: 'Poppins',
+                                  fontFamily: kDefaultFont,
                                   fontSize: 16,
                                   color: Colors.grey),
                             ),
@@ -149,7 +149,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             String distanceText = labelNotTracking;
                             if (locationProvider.isTracking &&
                                 locationProvider.currentPosition != null) {
-                              double distance = LocationService().calculateDistance(
+                              double distance =
+                                  LocationService().calculateDistance(
                                 locationProvider.currentPosition!.latitude,
                                 locationProvider.currentPosition!.longitude,
                                 location.latitude,
@@ -168,8 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onLongPress: () {
                                 if (locationProvider.isTracking) {
                                   Fluttertoast.showToast(
-                                      msg:
-                                          msgStopTrackingFirst);
+                                      msg: msgStopTrackingFirst);
                                   return;
                                 }
                                 _toggleSelectionMode(index);
@@ -194,13 +194,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: ListTile(
                                   title: Text(location.name,
                                       style: const TextStyle(
-                                          fontFamily: 'Poppins', fontSize: 16)),
+                                          fontFamily: kDefaultFont,
+                                          fontSize: 16)),
                                   subtitle: Text(
                                     isActive
                                         ? "Lat: ${location.latitude}, Lng: ${location.longitude}\n$distanceText"
                                         : "Lat: ${location.latitude}, Lng: ${location.longitude}",
                                     style: const TextStyle(
-                                        fontFamily: "Poppins", fontSize: 14),
+                                        fontFamily: kDefaultFont, fontSize: 14),
                                   ),
                                   trailing: Radio<int>(
                                     value: index,

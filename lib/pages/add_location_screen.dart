@@ -133,7 +133,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                     _isFetchingLocation
                         ? labelFetching
                         : hintUseCurrentLocation,
-                    style: const TextStyle(fontFamily: 'Poppins'),
+                    style: const TextStyle(fontFamily: kDefaultFont),
                   ),
                 ),
               ),
@@ -148,8 +148,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                 latitude: _initialPosition?.latitude,
                 decoration: InputDecoration(
                   hintText: hintEnterPlace,
-                  hintStyle:
-                      TextStyle(fontFamily: 'Poppins', color: theme.hintColor),
+                  hintStyle: TextStyle(
+                      fontFamily: kDefaultFont, color: theme.hintColor),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(width: 0.5)),
@@ -209,10 +209,10 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                       children: [
                         Text(_selectedLocation!,
                             style: const TextStyle(
-                                fontFamily: 'Poppins', fontSize: 18)),
+                                fontFamily: kDefaultFont, fontSize: 18)),
                         Text("Lat: $_selectedLat, Lng: $_selectedLng",
                             style: TextStyle(
-                                fontFamily: 'Poppins',
+                                fontFamily: kDefaultFont,
                                 fontSize: 16,
                                 color: theme.textTheme.bodySmall?.color)),
                       ],

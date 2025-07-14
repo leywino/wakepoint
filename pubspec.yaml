@@ -16,6 +16,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
   flutter_inappwebview: ^6.1.5
   flutter_local_notifications: ^19.3.0
+  flutter_svg: ^2.2.0
   fluttertoast: ^8.2.12
   geocoding: ^4.0.0
   geolocator: ^14.0.2
@@ -40,7 +41,7 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: true
-  image_path: "assets/logo.png"
+  image_path: "assets/images/logo.png"
 
 flutter:
   uses-material-design: true
@@ -48,6 +49,7 @@ flutter:
   assets:
     - assets/
     - assets/fonts/
+    - assets/images/
     - .env
 
   fonts:

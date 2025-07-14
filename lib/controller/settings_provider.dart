@@ -16,7 +16,7 @@ class SettingsProvider with ChangeNotifier {
   SettingsProvider(this.prefs);
 
   double get radius {
-    return prefs?.getDouble('default_radius') ?? 500;
+    return prefs?.getDouble('default_radius') ?? 1000;
   }
 
   set radius(double radius) {
@@ -81,7 +81,7 @@ class SettingsProvider with ChangeNotifier {
 
   bool get isThresholdEnabled {
     return prefs?.getBool('enable_notification_threshold') ??
-        false; // Default to false (off)
+        false;
   }
 
   set isThresholdEnabled(bool enable) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
-import 'package:wakepoint/config/constants.dart';
+import 'package:wakepoint/config/constants.dart'; // Assuming constants.dart includes both constant_sizes and constant_strings
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -21,20 +21,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _checkPermissions();
   }
 
-  /// **Check current permission status**
   Future<void> _checkPermissions() async {
     _overlayGranted = await Permission.systemAlertWindow.isGranted;
     _batteryGranted = await Permission.ignoreBatteryOptimizations.isGranted;
     setState(() {});
   }
 
-  /// **Request Overlay Permission**
   Future<void> _requestOverlayPermission() async {
     final status = await Permission.systemAlertWindow.request();
     setState(() => _overlayGranted = status.isGranted);
   }
 
-  /// **Request Battery Optimization Permission**
   Future<void> _requestBatteryPermission() async {
     final status = await Permission.ignoreBatteryOptimizations.request();
     setState(() => _batteryGranted = status.isGranted);
@@ -47,27 +44,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildTitle(),
-         sizedBoxH25,
-          _buildSectionTitle(sectionAppearance, theme),
-          _buildThemeSelection(settingsProvider),
-          sizedBoxH20,
-          _buildSectionTitle(sectionTracking, theme),
-          _buildRadiusSlider(settingsProvider),
-          _buildTrackingSettings(settingsProvider),
-          sizedBoxH20,
-          _buildSectionTitle(sectionAlarm, theme),
-          _buildAlarmSettings(settingsProvider),
-          sizedBoxH20,
-          _buildSectionTitle(sectionNotifications, theme),
-          _buildNotificationSettings(settingsProvider),
-          sizedBoxH20,
-          _buildSectionTitle(sectionPermissions, theme),
-          _buildPermissionSettings(),
-        ],
+      body: DefaultTextStyle(
+        style: const TextStyle(fontFamily: kDefaultFont),
+        child: ListView(
+          padding: const EdgeInsets.all(s16),
+          children: [
+            _buildTitle(),
+            verticalSpaceMedium,
+            _buildSectionTitle(sectionGeneral, theme),
+            _buildThemeSelection(settingsProvider),
+            verticalSpaceMedium,
+            _buildSectionTitle(sectionTracking, theme),
+            _buildTrackingSettings(settingsProvider),
+            verticalSpaceMedium,
+            _buildSectionTitle(sectionAlarm, theme),
+            _buildRadiusSetting(settingsProvider, theme),
+            _buildAlarmSettings(settingsProvider),
+            verticalSpaceMedium,
+            _buildSectionTitle(sectionNotifications, theme),
+            _buildNotificationSettings(settingsProvider),
+            verticalSpaceMedium,
+            _buildSectionTitle(sectionPermissions, theme),
+            _buildPermissionSettings(),
+          ],
+        ),
       ),
     );
   }
@@ -75,14 +75,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildTitle() {
     return const Text(
       sectionSettings,
-      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+      style: TextStyle(fontSize: s32, fontWeight: FontWeight.bold),
     );
   }
 
-  /// **Section Title**
   Widget _buildSectionTitle(String title, ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.only(top: s6),
       child: Text(
         title.toUpperCase(),
         style: theme.textTheme.labelLarge?.copyWith(
@@ -93,37 +92,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// **Dropdown-style Theme Selection**
   Widget _buildThemeSelection(SettingsProvider settingsProvider) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.color_lens),
       title: const Text(labelTheme),
       subtitle: Text(
         _getThemeName(settingsProvider.theme),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       onTap: () => _showThemeDialog(settingsProvider),
     );
   }
 
-  /// **Theme Selection Dialog**
   void _showThemeDialog(SettingsProvider settingsProvider) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(s16)),
       ),
       builder: (context) {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text("Select App Theme", style: TextStyle(fontSize: 18)),
+              padding: EdgeInsets.all(s8),
+              child: Text("Select App Theme", style: TextStyle(fontSize: s18)),
             ),
             _buildThemeOption(
                 settingsProvider, ThemeSettings.system, valSystemDefault),
@@ -164,30 +159,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// **Tracking Radius Slider**
-  Widget _buildRadiusSlider(SettingsProvider settingsProvider) {
-    return Column(
-      children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text(labelTrackingRadius),
-          subtitle: Text("${settingsProvider.radius.toInt()} $labelMeters"),
-        ),
-        Slider(
-          value: settingsProvider.radius,
-          min: 10,
-          max: 1000,
-          divisions: 20,
-          label: "${settingsProvider.radius.toInt()} m",
-          onChanged: (newValue) {
-            settingsProvider.radius = newValue;
-          },
-        ),
-      ],
+  Widget _buildRadiusSetting(
+      SettingsProvider settingsProvider, ThemeData theme) {
+    int initialIndex = ksRadiusOptions.indexWhere(
+      (r) => r >= settingsProvider.radius.toInt(),
+    );
+    if (initialIndex == -1) initialIndex = ksRadiusOptions.length - 1;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.share_location),
+      title: const Text(labelTrackingRadius),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "${settingsProvider.radius.toInt()} $labelMeters",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+              fontSize: s16,
+            ),
+          ),
+          sizedBoxW8,
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: () =>
+          _showRadiusSelectionModal(context, settingsProvider, initialIndex),
     );
   }
 
-  /// **Alarm Settings**
+  Future<void> _showRadiusSelectionModal(BuildContext context,
+      SettingsProvider settingsProvider, int initialIndex) async {
+    int selectedIndex = initialIndex;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(s16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: s16, vertical: s12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    labelSelectRadius,
+                    style:
+                        TextStyle(fontSize: s18, fontWeight: FontWeight.bold),
+                  ),
+                  Slider(
+                    value: selectedIndex.toDouble(),
+                    min: s0,
+                    max: (ksRadiusOptions.length - 1).toDouble(),
+                    divisions: ksRadiusOptions.length - 1,
+                    label: "${ksRadiusOptions[selectedIndex]} $labelMeters",
+                    onChanged: (double newIndex) {
+                      setModalState(() {
+                        selectedIndex = newIndex.round();
+                      });
+                    },
+                  ),
+                  Text(
+                    "${ksRadiusOptions[selectedIndex]} $labelMeters",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  sizedBoxH8,
+                  ElevatedButton(
+                    onPressed: () {
+                      settingsProvider.radius =
+                          ksRadiusOptions[selectedIndex].toDouble();
+                      Navigator.pop(context);
+                    },
+                    child: const Text(btnApply),
+                  ),
+                  sizedBoxH16,
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildAlarmSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
@@ -195,6 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           labelVibration,
           settingsProvider.alarmVibration,
           (value) => settingsProvider.alarmVibration = value,
+          icon: Icons.vibration,
         ),
         _buildSwitchTile(
           labelUseOverlayAlarm,
@@ -204,12 +265,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : null,
           disabled: !_overlayGranted,
           subtitle: msgOverlayRequired,
+          icon: Icons.layers,
         ),
       ],
     );
   }
 
-  /// **Tracking Settings**
   Widget _buildTrackingSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
@@ -219,11 +280,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           [valHighAccuracy, valBalanced, valBatterySaving],
           (value) => settingsProvider.trackingAccuracy =
               _getTrackingAccuracyFromString(value!),
+          icon: Icons.location_searching,
         ),
-
-        // Switch to Enable/Disable Notification Distance Threshold
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.notifications_active),
           title: const Text(labelDistanceNotification),
           subtitle: const Text(descLimitNotifications),
           value: settingsProvider.isThresholdEnabled,
@@ -231,17 +292,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             settingsProvider.isThresholdEnabled = value;
           },
         ),
-
-        // Dropdown for Notification Distance Threshold (Disabled when switch is off)
         ListTile(
           contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.social_distance),
           title: const Text(labelDistanceThreshold),
           subtitle: const Text(descSendRealTime),
           trailing: DropdownButton<double>(
             value: settingsProvider.notificationDistanceThreshold,
-            items: [5, 7.5, 10, 12.5, 15].map((e) {
-              return DropdownMenuItem(
-                value: e.toDouble(),
+            items: kcDistanceNumberList.map((e) {
+              return DropdownMenuItem<double>(
+                value: e,
                 child: Text("$e km"),
               );
             }).toList(),
@@ -251,33 +311,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       settingsProvider.notificationDistanceThreshold = newValue;
                     }
                   }
-                : null, // Disable dropdown when switch is off
+                : null,
           ),
         ),
       ],
     );
   }
 
-  /// **Notification Settings**
   Widget _buildNotificationSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
         _buildSwitchTile(
-          descEnablePersistent,
+          labelPersistentNotification, // Changed to persistent notification from description
           settingsProvider.persistentNotification,
           (value) => settingsProvider.persistentNotification = value,
+          icon: Icons.push_pin,
+          subtitle: descEnablePersistent, // Added subtitle here for clarity
         ),
       ],
     );
   }
 
-  /// **Permission Settings**
   Widget _buildPermissionSettings() {
     return Column(
       children: [
-        // Overlay Permission
         ListTile(
           contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.window),
           title: const Text(permOverlay),
           subtitle: const Text(msgOverlayNeededForAlerts),
           trailing: _overlayGranted
@@ -287,12 +347,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: const Text(btnGrant),
                 ),
         ),
-
         sizedBoxH10,
-
-        // Battery Optimization Permission
         ListTile(
           contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.battery_alert),
           title: const Text(permBattery),
           subtitle: const Text(msgBatteryNeededForPersistence),
           trailing: _batteryGranted
@@ -306,11 +364,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// **Reusable Dropdown Tile**
   Widget _buildDropdownTile(String title, String value, List<String> options,
-      ValueChanged<String?>? onChanged) {
+      ValueChanged<String?>? onChanged,
+      {IconData icon = Icons.arrow_drop_down}) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
       title: Text(title),
       trailing: DropdownButton<String>(
         value: value,
@@ -322,12 +381,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  /// **Reusable Switch Tile**
   Widget _buildSwitchTile(
       String title, bool value, ValueChanged<bool>? onChanged,
-      {bool disabled = false, String? subtitle}) {
+      {bool disabled = false,
+      String? subtitle,
+      IconData icon = Icons.toggle_on}) {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
+      secondary: Icon(icon),
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle) : null,
       value: value,
@@ -350,11 +411,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   int _getTrackingAccuracyFromString(String accuracy) {
     switch (accuracy) {
-      case "High Accuracy":
+      case valHighAccuracy:
         return 0;
-      case "Balanced":
+      case valBalanced:
         return 1;
-      case "Battery Saving":
+      case valBatterySaving:
         return 2;
       default:
         throw ArgumentError(msgInvalidAccuracy(accuracy));
