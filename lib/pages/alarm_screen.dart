@@ -41,7 +41,7 @@ class _AlarmScreenState extends State<AlarmScreen>
 
   /// **Start Alarm with Default Ringtone & Vibration**
   void _startAlarm() async {
-    if (settingsProvider.alarmVibration) {
+    if (settingsProvider.enableAlarmVibration) {
       _startVibrationPattern();
     }
 

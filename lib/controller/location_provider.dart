@@ -31,7 +31,7 @@ class LocationProvider with ChangeNotifier {
       FlutterLocalNotificationsPlugin();
 
   LocationProvider(this._settingsProvider, this._locationService)
-      : _radius = _settingsProvider.radius {
+      : _radius = _settingsProvider.alarmRadius {
     _settingsProvider.addListener(_updateRadius);
     _initNotifications();
     _loadLocations();
@@ -44,7 +44,7 @@ class LocationProvider with ChangeNotifier {
   Position? get currentPosition => _locationService.currentPosition;
 
   void _updateRadius() {
-    _radius = _settingsProvider.radius;
+    _radius = _settingsProvider.alarmRadius;
     notifyListeners();
   }
 
@@ -136,7 +136,8 @@ class LocationProvider with ChangeNotifier {
     final target = _locations[_selectedLocationIndex!];
 
     _locationService.startListening(
-      accuracy: listOfAccuracy[_settingsProvider.trackingAccuracy],
+      accuracy:
+          locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
       distanceFilter: 20,
       onUpdate: (position) {
         _sendRealtimeUpdate(position, target);
@@ -158,9 +159,10 @@ class LocationProvider with ChangeNotifier {
       target.latitude,
       target.longitude,
     );
-    final threshold = _settingsProvider.notificationDistanceThreshold * 1000;
+    final threshold = _settingsProvider.notificationDistanceThresholdKm * 1000;
 
-    if (_settingsProvider.isThresholdEnabled && distance > threshold) return;
+    if (_settingsProvider.isNotificationThresholdEnabled &&
+        distance > threshold) return;
 
     final formatted = await _locationService.formatDistance(
       distance: distance,
@@ -212,7 +214,7 @@ class LocationProvider with ChangeNotifier {
     await _notificationsPlugin.show(
         0, 'WakePoint Alert!', 'You are near ${location.name}.', details);
 
-    if (_settingsProvider.useOverlayAlarm) {
+    if (_settingsProvider.useOverlayAlarmFeature) {
       const platform = MethodChannel('com.leywin.wakepoint/alarm');
       try {
         await platform.invokeMethod('startAlarm');

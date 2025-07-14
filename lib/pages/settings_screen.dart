@@ -121,11 +121,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text("Select App Theme", style: TextStyle(fontSize: s18)),
             ),
             _buildThemeOption(
-                settingsProvider, ThemeSettings.system, valSystemDefault),
-            _buildThemeOption(
-                settingsProvider, ThemeSettings.light, valLightMode),
-            _buildThemeOption(
-                settingsProvider, ThemeSettings.dark, valDarkMode),
+                settingsProvider, AppTheme.system, valSystemDefault),
+            _buildThemeOption(settingsProvider, AppTheme.light, valLightMode),
+            _buildThemeOption(settingsProvider, AppTheme.dark, valDarkMode),
             sizedBoxH10,
           ],
         );
@@ -134,8 +132,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeOption(
-      SettingsProvider settingsProvider, ThemeSettings value, String label) {
-    return RadioListTile<ThemeSettings>(
+      SettingsProvider settingsProvider, AppTheme value, String label) {
+    return RadioListTile<AppTheme>(
       title: Text(label),
       value: value,
       groupValue: settingsProvider.theme,
@@ -148,11 +146,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String _getThemeName(ThemeSettings theme) {
+  String _getThemeName(AppTheme theme) {
     switch (theme) {
-      case ThemeSettings.light:
+      case AppTheme.light:
         return valLightMode;
-      case ThemeSettings.dark:
+      case AppTheme.dark:
         return valDarkMode;
       default:
         return valSystemDefault;
@@ -162,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildRadiusSetting(
       SettingsProvider settingsProvider, ThemeData theme) {
     int initialIndex = ksRadiusOptions.indexWhere(
-      (r) => r >= settingsProvider.radius.toInt(),
+      (r) => r >= settingsProvider.alarmRadius.toInt(),
     );
     if (initialIndex == -1) initialIndex = ksRadiusOptions.length - 1;
 
@@ -174,7 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "${settingsProvider.radius.toInt()} $labelMeters",
+            "${settingsProvider.alarmRadius.toInt()} $labelMeters",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
@@ -232,7 +230,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   sizedBoxH8,
                   ElevatedButton(
                     onPressed: () {
-                      settingsProvider.radius =
+                      settingsProvider.alarmRadius =
                           ksRadiusOptions[selectedIndex].toDouble();
                       Navigator.pop(context);
                     },
@@ -253,15 +251,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         _buildSwitchTile(
           labelVibration,
-          settingsProvider.alarmVibration,
-          (value) => settingsProvider.alarmVibration = value,
+          settingsProvider.enableAlarmVibration,
+          (value) => settingsProvider.enableAlarmVibration = value,
           icon: Icons.vibration,
         ),
         _buildSwitchTile(
           labelUseOverlayAlarm,
-          settingsProvider.useOverlayAlarm,
+          settingsProvider.useOverlayAlarmFeature,
           _overlayGranted
-              ? (value) => settingsProvider.useOverlayAlarm = value
+              ? (value) => settingsProvider.useOverlayAlarmFeature = value
               : null,
           disabled: !_overlayGranted,
           subtitle: msgOverlayRequired,
@@ -276,9 +274,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         _buildDropdownTile(
           labelTrackingAccuracy,
-          _getTrackingAccuracyLabel(settingsProvider.trackingAccuracy),
+          _getTrackingAccuracyLabel(settingsProvider.locationTrackingAccuracy),
           [valHighAccuracy, valBalanced, valBatterySaving],
-          (value) => settingsProvider.trackingAccuracy =
+          (value) => settingsProvider.locationTrackingAccuracy =
               _getTrackingAccuracyFromString(value!),
           icon: Icons.location_searching,
         ),
@@ -287,9 +285,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           secondary: const Icon(Icons.notifications_active),
           title: const Text(labelDistanceNotification),
           subtitle: const Text(descLimitNotifications),
-          value: settingsProvider.isThresholdEnabled,
+          value: settingsProvider.isNotificationThresholdEnabled,
           onChanged: (value) {
-            settingsProvider.isThresholdEnabled = value;
+            settingsProvider.isNotificationThresholdEnabled = value;
           },
         ),
         ListTile(
@@ -298,17 +296,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text(labelDistanceThreshold),
           subtitle: const Text(descSendRealTime),
           trailing: DropdownButton<double>(
-            value: settingsProvider.notificationDistanceThreshold,
+            value: settingsProvider.notificationDistanceThresholdKm,
             items: kcDistanceNumberList.map((e) {
               return DropdownMenuItem<double>(
                 value: e,
                 child: Text("$e km"),
               );
             }).toList(),
-            onChanged: settingsProvider.isThresholdEnabled
+            onChanged: settingsProvider.isNotificationThresholdEnabled
                 ? (newValue) {
                     if (newValue != null) {
-                      settingsProvider.notificationDistanceThreshold = newValue;
+                      settingsProvider.notificationDistanceThresholdKm =
+                          newValue;
                     }
                   }
                 : null,
@@ -323,8 +322,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         _buildSwitchTile(
           labelPersistentNotification, // Changed to persistent notification from description
-          settingsProvider.persistentNotification,
-          (value) => settingsProvider.persistentNotification = value,
+          settingsProvider.enablePersistentNotification,
+          (value) => settingsProvider.enablePersistentNotification = value,
           icon: Icons.push_pin,
           subtitle: descEnablePersistent, // Added subtitle here for clarity
         ),

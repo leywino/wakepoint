@@ -2,90 +2,89 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum ThemeSettings { system, light, dark }
+enum AppTheme { system, light, dark }
 
-List<LocationAccuracy> listOfAccuracy = [
+List<LocationAccuracy> locationAccuracyOptions = [
   LocationAccuracy.best,
   LocationAccuracy.medium,
   LocationAccuracy.low,
 ];
 
 class SettingsProvider with ChangeNotifier {
-  SharedPreferences? prefs;
+  final SharedPreferences? _prefs;
 
-  SettingsProvider(this.prefs);
+  SettingsProvider(this._prefs);
 
-  double get radius {
-    return prefs?.getDouble('default_radius') ?? 1000;
+  double get alarmRadius {
+    return _prefs?.getDouble('alarm_radius') ?? 1000;
   }
 
-  set radius(double radius) {
-    prefs?.setDouble('default_radius', radius);
+  set alarmRadius(double radius) {
+    _prefs?.setDouble('alarm_radius', radius);
     notifyListeners();
   }
 
-  ThemeSettings get theme {
-    return ThemeSettings
-        .values[prefs?.getInt('theme') ?? ThemeSettings.system.index];
+  AppTheme get theme {
+    return AppTheme
+        .values[_prefs?.getInt('app_theme') ?? AppTheme.system.index];
   }
 
-  set theme(ThemeSettings t) {
-    prefs?.setInt('theme', t.index);
+  set theme(AppTheme t) {
+    _prefs?.setInt('app_theme', t.index);
     notifyListeners();
   }
 
-  int get trackingAccuracy {
-    return prefs?.getInt('tracking_accuracy') ?? 0;
+  int get locationTrackingAccuracy {
+    return _prefs?.getInt('location_tracking_accuracy') ?? 0;
   }
 
-  set trackingAccuracy(int i) {
-    prefs?.setInt('tracking_accuracy', i);
+  set locationTrackingAccuracy(int i) {
+    _prefs?.setInt('location_tracking_accuracy', i);
     notifyListeners();
   }
 
-  bool get alarmVibration {
-    return prefs?.getBool("alarm_vibration") ?? true;
+  bool get enableAlarmVibration {
+    return _prefs?.getBool("enable_alarm_vibration") ?? true;
   }
 
-  set alarmVibration(bool enable) {
-    prefs?.setBool('alarm_vibration', enable);
+  set enableAlarmVibration(bool enable) {
+    _prefs?.setBool('enable_alarm_vibration', enable);
     notifyListeners();
   }
 
-  bool get persistentNotification {
-    return prefs?.getBool("persistent_notification") ?? true;
+  bool get enablePersistentNotification {
+    return _prefs?.getBool("enable_persistent_notification") ?? true;
   }
 
-  set persistentNotification(bool enable) {
-    prefs?.setBool('persistent_notification', enable);
+  set enablePersistentNotification(bool enable) {
+    _prefs?.setBool('enable_persistent_notification', enable);
     notifyListeners();
   }
 
-  bool get useOverlayAlarm {
-    return prefs?.getBool("use_overlay_alarm") ?? false;
+  bool get useOverlayAlarmFeature {
+    return _prefs?.getBool("use_overlay_alarm_feature") ?? false;
   }
 
-  set useOverlayAlarm(bool enable) {
-    prefs?.setBool('use_overlay_alarm', enable);
+  set useOverlayAlarmFeature(bool enable) {
+    _prefs?.setBool('use_overlay_alarm_feature', enable);
     notifyListeners();
   }
 
-  double get notificationDistanceThreshold {
-    return prefs?.getDouble('notification_distance_threshold') ?? 5.0;
+  double get notificationDistanceThresholdKm {
+    return _prefs?.getDouble('notification_distance_threshold_km') ?? 5.0;
   }
 
-  set notificationDistanceThreshold(double threshold) {
-    prefs?.setDouble('notification_distance_threshold', threshold);
+  set notificationDistanceThresholdKm(double threshold) {
+    _prefs?.setDouble('notification_distance_threshold_km', threshold);
     notifyListeners();
   }
 
-  bool get isThresholdEnabled {
-    return prefs?.getBool('enable_notification_threshold') ??
-        false;
+  bool get isNotificationThresholdEnabled {
+    return _prefs?.getBool('is_notification_threshold_enabled') ?? false;
   }
 
-  set isThresholdEnabled(bool enable) {
-    prefs?.setBool('enable_notification_threshold', enable);
+  set isNotificationThresholdEnabled(bool enable) {
+    _prefs?.setBool('is_notification_threshold_enabled', enable);
     notifyListeners();
   }
 }
