@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:open_location_code/open_location_code.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/models/predictions/location.dart';
 import 'package:wakepoint/models/predictions/prediction.dart';
 import 'package:wakepoint/utils/utils.dart';
@@ -175,11 +176,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final prediction = _predictions[index];
-                final fallbackText =
-                    prediction.terms?.map((t) => t.value).join(', ') ?? '';
-                final displayText = prediction.description?.isNotEmpty == true
-                    ? prediction.description!
-                    : fallbackText;
+                final displayText = prediction.description ?? labelUnknownLocation;
 
                 return InkWell(
                   onTap: () {
