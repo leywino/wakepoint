@@ -17,15 +17,6 @@ class SettingsProvider with ChangeNotifier {
 
   SettingsProvider(this._prefs);
 
-  double get alarmRadius {
-    return _prefs?.getDouble('alarm_radius') ?? 1000;
-  }
-
-  set alarmRadius(double radius) {
-    _prefs?.setDouble('alarm_radius', radius);
-    notifyListeners();
-  }
-
   AppTheme get theme {
     return AppTheme
         .values[_prefs?.getInt('app_theme') ?? AppTheme.system.index];
