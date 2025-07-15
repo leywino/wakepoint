@@ -28,7 +28,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _setupAlarmCallback();
-    _fetchInitialPosition();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchInitialPosition();
+    });
   }
 
   void _setupAlarmCallback() {
@@ -91,11 +93,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _fetchInitialPosition() async {
+    Fluttertoast.showToast(
+      msg: msgFetchingLocation,
+      toastLength: Toast.LENGTH_SHORT,
+    );
+
     try {
       _initialPosition = await LocationService().getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-      setState(() {});
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       _initialPosition = null;
     }
@@ -137,15 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildTrackingAndSettingsButtons(LocationProvider locationProvider) {
     return Row(
       children: [
-        IconButton(
-          icon: Icon(
-            locationProvider.isTracking ? Icons.pause : Icons.play_arrow,
-            size: s30,
+        if (locationProvider.selectedLocationIndex != null)
+          IconButton(
+            icon: Icon(
+              locationProvider.isTracking ? Icons.stop : Icons.play_arrow,
+              size: s30,
+            ),
+            onPressed: () {
+              locationProvider.toggleTracking();
+            },
           ),
-          onPressed: () {
-            locationProvider.toggleTracking();
-          },
-        ),
         IconButton(
           icon: const Icon(
             Icons.settings,
@@ -198,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _toggleSelectionMode(index);
           },
           onTap: () {
+            if (locationProvider.isTracking) return;
             if (_isSelectionMode) {
               _toggleSelectionMode(index);
             } else {
@@ -206,9 +217,6 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           child: Card(
             elevation: s2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(s16),
-            ),
             color: isSelected
                 ? Theme.of(context).colorScheme.primary.withValues(alpha: s05)
                 : null,
@@ -228,38 +236,54 @@ class _HomeScreenState extends State<HomeScreen> {
     int index,
   ) {
     String distanceText = labelNotTracking;
-    if (locationProvider.isTracking &&
-        locationProvider.currentPosition != null) {
+
+    final currentPos = locationProvider.isTracking
+        ? locationProvider.currentPosition
+        : _initialPosition;
+
+    if (currentPos != null) {
       double distanceInMeters = LocationService().calculateDistance(
-        locationProvider.currentPosition!.latitude,
-        locationProvider.currentPosition!.longitude,
+        currentPos.latitude,
+        currentPos.longitude,
         location.latitude,
         location.longitude,
       );
 
-      distanceText = "$labelDistance ${UnitConverter.formatDistanceForDisplay(
+      distanceText = "\n$labelDistance ${UnitConverter.formatDistanceForDisplay(
         distanceInMeters,
         settingsProvider.preferredUnitSystem,
       )}";
+    } else {
+      distanceText = "";
     }
 
     return ListTile(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(s16),
+      ),
+      tileColor: isActive
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+          : null,
       title: Text(
         location.name,
-        style: const TextStyle(fontFamily: kDefaultFont, fontSize: s16),
+        style: TextStyle(
+          fontFamily: kDefaultFont,
+          fontSize: s16,
+          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
       subtitle: Text(
-        isActive
-            ? "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}\n$distanceText"
-            : "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}",
+        "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}$distanceText",
         style: const TextStyle(fontFamily: kDefaultFont, fontSize: s14),
       ),
       trailing: Radio<int>(
         value: index,
         groupValue: locationProvider.selectedLocationIndex,
-        onChanged: (value) {
-          locationProvider.setSelectedLocation(value!);
-        },
+        onChanged: locationProvider.isTracking
+            ? null // disables interaction
+            : (value) {
+                locationProvider.setSelectedLocation(value!);
+              },
       ),
     );
   }
@@ -267,7 +291,9 @@ class _HomeScreenState extends State<HomeScreen> {
   FloatingActionButton _buildFloatingActionButton() {
     return FloatingActionButton(
       onPressed: _initialPosition != null ? _navigateToLocationScreen : null,
-      child: const Icon(Icons.add_location_alt, size: s28),
+      child: _initialPosition != null
+          ? const Icon(Icons.add_location_alt, size: s28)
+          : const CircularProgressIndicator(),
     );
   }
 }
