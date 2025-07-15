@@ -49,6 +49,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
   final _layerLink = LayerLink();
   final _fieldKey = GlobalKey();
   final PlacesService _placesService = PlacesService();
+  bool _isLoading = false;
 
   CancelToken? _cancelToken;
   OverlayEntry? _overlayEntry;
@@ -127,13 +128,20 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
   Future<void> _onSearchChanged(String query) async {
     if (query.isEmpty) {
       _removeOverlay();
+      setState(() => _isLoading = false);
       return;
     }
 
-    if (_handleLatLngInput(query)) return;
-    if (_handlePlusCodeInput(query)) return;
+    setState(() => _isLoading = true);
+
+    if (_handleLatLngInput(query) || _handlePlusCodeInput(query)) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
     await _handlePlacePrediction(query);
+
+    setState(() => _isLoading = false);
   }
 
   void _showOverlay() {
@@ -176,7 +184,8 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final prediction = _predictions[index];
-                final displayText = prediction.description ?? labelUnknownLocation;
+                final displayText =
+                    prediction.description ?? labelUnknownLocation;
 
                 return InkWell(
                   onTap: () {
@@ -238,10 +247,19 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
               controller: widget.controller,
               decoration: widget.decoration.copyWith(
                 suffixIcon: widget.isCrossBtnShown && _showCrossIconWidget()
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: clearData,
-                      )
+                    ? (_isLoading
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: clearData,
+                          ))
                     : null,
               ),
               style: widget.textStyle,
