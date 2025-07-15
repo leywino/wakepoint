@@ -28,6 +28,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   GoogleMapController? _mapController;
   LatLng? _selectedLatLng;
   String? _selectedLocationName;
+  double _radius = 150;
 
   @override
   void dispose() {
@@ -66,11 +67,11 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     if (_selectedLatLng != null && _selectedLocationName != null) {
       final provider = Provider.of<LocationProvider>(context, listen: false);
       provider.addLocation(LocationModel(
-        name: _selectedLocationName!,
-        latitude: _selectedLatLng!.latitude,
-        longitude: _selectedLatLng!.longitude,
-        isEnabled: true,
-      ));
+          name: _selectedLocationName!,
+          latitude: _selectedLatLng!.latitude,
+          longitude: _selectedLatLng!.longitude,
+          isEnabled: true,
+          radius: _radius));
 
       logHere("Location saved: $_selectedLocationName at $_selectedLatLng");
       Navigator.pop(context);
@@ -108,6 +109,10 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                   final name =
                       await _reverseGeocode(latLng.latitude, latLng.longitude);
                   await _updateLocation(name, latLng);
+                },onRadiusChanged: (radius) {
+                  setState(() {
+                    _radius = radius;
+                  });
                 },
               ),
             ),

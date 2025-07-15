@@ -6,21 +6,25 @@ import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/utils/utils.dart';
 
+const String _logTag = "MapWidget";
+void logHere(String message) => log(message, tag: _logTag);
+
 class MapWidget extends StatefulWidget {
-  const MapWidget({
-    super.key,
-    this.selectedLatLng,
-    required this.initialPosition,
-    required this.onMapCreated,
-    this.isDark = false,
-    this.onTap,
-  });
+  const MapWidget(
+      {super.key,
+      this.selectedLatLng,
+      required this.initialPosition,
+      required this.onMapCreated,
+      this.isDark = false,
+      this.onTap,
+      this.onRadiusChanged});
 
   final LatLng? selectedLatLng;
   final LatLng initialPosition;
   final Function(GoogleMapController) onMapCreated;
   final bool isDark;
   final Function(LatLng)? onTap;
+  final Function(double)? onRadiusChanged;
 
   @override
   State<MapWidget> createState() => _MapWidgetState();
@@ -28,6 +32,7 @@ class MapWidget extends StatefulWidget {
 
 class _MapWidgetState extends State<MapWidget> {
   late GoogleMapController _mapController;
+  late Debouncer _debouncer;
   double _radius = 150;
   double _currentZoom = 15;
   String? _mapStyle;
@@ -36,6 +41,7 @@ class _MapWidgetState extends State<MapWidget> {
   void initState() {
     super.initState();
     _loadMapStyle();
+    _debouncer = Debouncer(duration: const Duration(milliseconds: 300));
   }
 
   Future<void> _loadMapStyle() async {
@@ -148,6 +154,7 @@ class _MapWidgetState extends State<MapWidget> {
               color: theme.colorScheme.onSurface,
             ),
           ),
+          //todo: slider value format is not unit supported
           Slider(
             padding: EdgeInsets.zero,
             value: _radius,
@@ -159,16 +166,24 @@ class _MapWidgetState extends State<MapWidget> {
                   (a, b) => (a - newVal).abs() < (b - newVal).abs() ? a : b);
 
               setState(() {
-                _radius = snapped.toDouble();
-                _currentZoom = _calculateZoomLevel(_radius);
+                _radius = newVal;
               });
 
-              if (widget.selectedLatLng != null) {
-                _mapController.animateCamera(
-                  CameraUpdate.newLatLngZoom(
-                      widget.selectedLatLng!, _currentZoom),
-                );
-              }
+              _debouncer.run(() {
+                logHere("Radius changed (debounced): $snapped");
+                setState(() {
+                  _radius = snapped.toDouble();
+                  _currentZoom = _calculateZoomLevel(_radius);
+                  widget.onRadiusChanged?.call(_radius);
+                });
+
+                if (widget.selectedLatLng != null) {
+                  _mapController.animateCamera(
+                    CameraUpdate.newLatLngZoom(
+                        widget.selectedLatLng!, _currentZoom),
+                  );
+                }
+              });
             },
             label: _radius.round().toString(),
             activeColor: theme.colorScheme.primary,

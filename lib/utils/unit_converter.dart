@@ -16,9 +16,10 @@ class UnitConverter {
     if (unitSystem == UnitSystem.imperial) {
       // Convert meters to feet, yards, or miles
       // If less than 0.1 miles (approx 160 meters), show in yards
-      if (meters < 160.934) { // 0.1 * 1609.34
-         double yards = meters / _metersPerYard;
-         return '${yards.toStringAsFixed(0)} yd'; // No decimals for yards
+      if (meters < 160.934) {
+        // 0.1 * 1609.34
+        double yards = meters / _metersPerYard;
+        return '${yards.toStringAsFixed(0)} yd'; // No decimals for yards
       } else {
         double miles = meters / _metersPerMile;
         return '${miles.toStringAsFixed(1)} mi'; // One decimal for miles
@@ -34,7 +35,8 @@ class UnitConverter {
   }
 
   /// Helper method to format threshold distance (stored in kilometers)
-  static String formatThresholdForDisplay(double kilometers, UnitSystem unitSystem) {
+  static String formatThresholdForDisplay(
+      double kilometers, UnitSystem unitSystem) {
     if (unitSystem == UnitSystem.imperial) {
       double miles = kilometers / _kmPerMile;
       return '${miles.toStringAsFixed(1)} mi';
