@@ -12,6 +12,7 @@ const sizedBoxW25 = SizedBox(width: 25);
 const sizedBoxW30 = SizedBox(width: 30);
 
 // Vertical spacers
+const sizedBoxH1 = SizedBox(height: 1);
 const sizedBoxH8 = SizedBox(height: 8);
 const sizedBoxH10 = SizedBox(height: 10);
 const sizedBoxH12 = SizedBox(height: 12);
@@ -116,4 +117,3 @@ const SizedBox verticalSpaceMedium = SizedBox(height: _medium);
 const SizedBox verticalSpaceLarge = SizedBox(height: _large);
 const SizedBox verticalSpaceMassive = SizedBox(height: _massive);
 const SizedBox verticalSpaceEnormous = SizedBox(height: _enormous);
-

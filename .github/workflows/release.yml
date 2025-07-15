@@ -24,6 +24,10 @@ jobs:
       - name: 📝 Create .env file
         run: |
           echo "OLA_MAPS_API_KEY=${{ secrets.OLA_MAPS_API_KEY }}" > .env
+      
+      - name: ➕ Append Google Maps API key to local.properties
+        run: |
+          echo "google.maps.api.key=${{ secrets.GOOGLE_MAPS_API_KEY }}" >> android/local.properties
 
       - name: 🔄 Get dependencies
         run: flutter pub get

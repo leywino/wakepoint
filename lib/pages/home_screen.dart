@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
@@ -21,11 +22,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isSelectionMode = false;
   final Set<int> _selectedItems = {};
+  Position? _initialPosition;
 
   @override
   void initState() {
     super.initState();
     _setupAlarmCallback();
+    _fetchInitialPosition();
   }
 
   void _setupAlarmCallback() {
@@ -41,10 +44,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _addLocation() {
+  void _navigateToLocationScreen() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const AddLocationScreen()),
+      MaterialPageRoute(
+          builder: (context) => AddLocationScreen(
+                initialPosition: _initialPosition!,
+              )),
     );
   }
 
@@ -82,6 +88,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedItems.clear();
       _isSelectionMode = false;
     });
+  }
+
+  void _fetchInitialPosition() async {
+    try {
+      _initialPosition = await LocationService().getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      setState(() {});
+    } catch (e) {
+      _initialPosition = null;
+    }
   }
 
   @override
@@ -249,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   FloatingActionButton _buildFloatingActionButton() {
     return FloatingActionButton(
-      onPressed: _addLocation,
+      onPressed: _initialPosition != null ? _navigateToLocationScreen : null,
       child: const Icon(Icons.add_location_alt, size: s28),
     );
   }

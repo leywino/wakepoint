@@ -7,7 +7,12 @@ class LocationService {
 
   Position? get currentPosition => _currentPosition;
 
-  Future<Position> getCurrentPosition() async {
+  Future<Position> getCurrentPosition({
+    LocationSettings? locationSettings,
+    LocationAccuracy desiredAccuracy = LocationAccuracy.best,
+    bool forceAndroidLocationManager = false,
+    Duration? timeLimit,
+  }) async {
     _currentPosition = await Geolocator.getCurrentPosition();
     return _currentPosition!;
   }
