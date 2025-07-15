@@ -30,6 +30,7 @@ const String btnDismissAlarm = "Dismiss Alarm";
 const String msgAlreadyWithinRadius =
     "You're already within the destination radius.";
 const String msgFetchingLocation = "Fetching your location...";
+const String msgUnableToFetch = "Fetching your location...";
 
 // ─────────────────────────────────────────────
 // ▶ Tracking Status Messages

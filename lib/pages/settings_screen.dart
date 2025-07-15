@@ -225,8 +225,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           secondary: const Icon(Icons.notifications_active),
-          title: const Text(labelDistanceNotification),
-          subtitle: const Text(descLimitNotifications),
+          title: const Text(labelNotifyWhenNearby),
+          subtitle: const Text(descNotifyWhenNearby),
           value: settingsProvider.isNotificationThresholdEnabled,
           onChanged: (value) {
             settingsProvider.isNotificationThresholdEnabled = value;
@@ -235,8 +235,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.social_distance),
-          title: const Text(labelDistanceThreshold),
-          subtitle: const Text(descSendRealTime),
+          title: const Text(labelTrackingRadius),
+          subtitle: const Text(descNotificationRadius),
           trailing: DropdownButton<double>(
             value: settingsProvider.notificationDistanceThresholdKm,
             items: kcDistanceNumberList.map((e) {
