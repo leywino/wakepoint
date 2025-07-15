@@ -66,7 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildTrackingSettings(settingsProvider),
             verticalSpaceMedium,
             _buildSectionTitle(sectionAlarm, theme),
-            _buildRadiusSetting(settingsProvider, theme),
             _buildAlarmSettings(settingsProvider),
             verticalSpaceMedium,
             _buildSectionTitle(sectionNotifications, theme),
@@ -187,102 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildRadiusSetting(
-      SettingsProvider settingsProvider, ThemeData theme) {
-    int initialIndex = ksRadiusOptions.indexWhere(
-      (r) => r >= settingsProvider.alarmRadius.toInt(),
-    );
-    if (initialIndex == -1) initialIndex = ksRadiusOptions.length - 1;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.share_location),
-      title: const Text(labelTrackingRadius),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            UnitConverter.formatDistanceForDisplay(settingsProvider.alarmRadius,
-                settingsProvider.preferredUnitSystem),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-              fontSize: s16,
-            ),
-          ),
-          sizedBoxW8,
-          const Icon(Icons.chevron_right),
-        ],
-      ),
-      onTap: () =>
-          _showRadiusSelectionModal(context, settingsProvider, initialIndex),
-    );
-  }
-
-  Future<void> _showRadiusSelectionModal(BuildContext context,
-      SettingsProvider settingsProvider, int initialIndex) async {
-    int selectedIndex = initialIndex;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(s16)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final currentSettingsProvider =
-                Provider.of<SettingsProvider>(context);
-
-            return Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: s16, vertical: s12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    labelSelectRadius,
-                    style:
-                        TextStyle(fontSize: s18, fontWeight: FontWeight.bold),
-                  ),
-                  Slider(
-                    value: selectedIndex.toDouble(),
-                    min: s0,
-                    max: (ksRadiusOptions.length - 1).toDouble(),
-                    divisions: ksRadiusOptions.length - 1,
-                    label: UnitConverter.formatDistanceForDisplay(
-                        ksRadiusOptions[selectedIndex].toDouble(),
-                        currentSettingsProvider.preferredUnitSystem),
-                    onChanged: (double newIndex) {
-                      setModalState(() {
-                        selectedIndex = newIndex.round();
-                      });
-                    },
-                  ),
-                  Text(
-                    UnitConverter.formatDistanceForDisplay(
-                        ksRadiusOptions[selectedIndex].toDouble(),
-                        currentSettingsProvider.preferredUnitSystem),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  sizedBoxH8,
-                  ElevatedButton(
-                    onPressed: () {
-                      currentSettingsProvider.alarmRadius =
-                          ksRadiusOptions[selectedIndex].toDouble();
-                      Navigator.pop(context);
-                    },
-                    child: const Text(btnApply),
-                  ),
-                  sizedBoxH16,
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  
 
   Widget _buildAlarmSettings(SettingsProvider settingsProvider) {
     return Column(
