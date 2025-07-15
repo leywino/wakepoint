@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:wakepoint/services/location_service.dart';
@@ -19,7 +21,6 @@ class LocationProvider with ChangeNotifier {
   final SettingsProvider _settingsProvider;
   final LocationService _locationService;
 
-  double _radius;
   List<LocationModel> _locations = [];
   int? _selectedLocationIndex;
   bool _isTracking = false;
@@ -30,23 +31,17 @@ class LocationProvider with ChangeNotifier {
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  LocationProvider(this._settingsProvider, this._locationService)
-      : _radius = _settingsProvider.alarmRadius {
-    _settingsProvider.addListener(_updateRadius);
+  LocationProvider(this._settingsProvider, this._locationService) {
     _initNotifications();
     _loadLocations();
   }
 
-  double get radius => _radius; 
   List<LocationModel> get locations => _locations;
   int? get selectedLocationIndex => _selectedLocationIndex;
   bool get isTracking => _isTracking;
   Position? get currentPosition => _locationService.currentPosition;
-
-  void _updateRadius() {
-    _radius = _settingsProvider.alarmRadius;
-    notifyListeners();
-  }
+  bool _isInitializingTracking = false;
+  bool get isInitializingTracking => _isInitializingTracking;
 
   void _initNotifications() {
     const androidSettings =
@@ -129,23 +124,57 @@ class LocationProvider with ChangeNotifier {
     FlutterBackground.disableBackgroundExecution();
     _alarmTriggered = false;
     _isTracking = false;
+    _isInitializingTracking = false;
+
     notifyListeners();
   }
 
   void _startTracking() {
     if (_selectedLocationIndex == null || !_isTracking) return;
+
     final target = _locations[_selectedLocationIndex!];
 
-    _locationService.startListening(
-      accuracy:
+    _locationService
+        .getCurrentPosition(
+      desiredAccuracy:
           locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
-      distanceFilter: 20, // Keep this in meters as distance is in meters
-      onUpdate: (position) {
-        _sendRealtimeUpdate(position, target);
-        _checkProximity(position, target);
+    )
+        .then((position) {
+      final distance = _locationService.calculateDistance(
+        position.latitude,
+        position.longitude,
+        target.latitude,
+        target.longitude,
+      );
+
+      if (distance <= target.radius) {
+        Fluttertoast.showToast(
+          msg: msgAlreadyWithinRadius,
+          toastLength: Toast.LENGTH_SHORT,
+        );
+        _isInitializingTracking = false;
+        _isTracking = false;
         notifyListeners();
-      },
-    );
+        return;
+      }
+
+      _locationService.startListening(
+        accuracy:
+            locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
+        distanceFilter: 20,
+        onUpdate: (position) {
+          _sendRealtimeUpdate(position, target);
+          _checkProximity(position, target, target.radius);
+          notifyListeners();
+        },
+      );
+    }).catchError((e) {
+      logHere("Failed to get initial position: $e");
+      Fluttertoast.showToast(msg: msgUnableToFetch);
+      _isInitializingTracking = false;
+      _isTracking = false;
+      notifyListeners();
+    });
   }
 
   void setAlarmCallback(VoidCallback callback) {
@@ -161,11 +190,14 @@ class LocationProvider with ChangeNotifier {
       target.longitude,
     );
     // Threshold is stored in KM, convert to meters for comparison
-    final thresholdInMeters = _settingsProvider.notificationDistanceThresholdKm * 1000;
+    final thresholdInMeters =
+        _settingsProvider.notificationDistanceThresholdKm * 1000 +
+            target.radius;
 
     if (_settingsProvider.isNotificationThresholdEnabled &&
         distanceInMeters > thresholdInMeters) {
-      logHere('Distance ($distanceInMeters m) is above notification threshold ($thresholdInMeters m). Not sending update.');
+      logHere(
+          'Distance ($distanceInMeters m) is above notification threshold ($thresholdInMeters m). Not sending update.');
       // Optional: Clear previous notification if it was showing a closer distance
       // to avoid stale info when outside threshold.
       _notificationsPlugin.cancel(1);
@@ -180,18 +212,19 @@ class LocationProvider with ChangeNotifier {
 
     if (!FlutterBackground.isBackgroundExecutionEnabled) return;
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'wakepoint_tracking',
-      'WakePoint Tracking',
+      target.name,
       importance: Importance.high,
       priority: Priority.high,
       ongoing: true, // Indicates a persistent notification
       autoCancel: false, // Prevents auto-cancellation on tap
       showWhen: false,
-      onlyAlertOnce: true, // This is for the notification channel, not the notification itself
+      onlyAlertOnce:
+          true, // This is for the notification channel, not the notification itself
       icon: 'ic_stat_notification',
       actions: [
-        AndroidNotificationAction(
+        const AndroidNotificationAction(
           'STOP_TRACKING',
           'Stop Tracking',
           showsUserInterface: true,
@@ -199,10 +232,10 @@ class LocationProvider with ChangeNotifier {
       ],
     );
 
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
 
-    await _notificationsPlugin.show(
-        1, 'Tracking Active', 'Distance: $formattedDistance', details); // Use formattedDistance
+    await _notificationsPlugin.show(1, 'Tracking Active',
+        'Distance: $formattedDistance', details); // Use formattedDistance
   }
 
   Future<void> _triggerAlarm(LocationModel location) async {
@@ -237,7 +270,7 @@ class LocationProvider with ChangeNotifier {
     onAlarmTriggered?.call();
   }
 
-  void _checkProximity(Position position, LocationModel target) {
+  void _checkProximity(Position position, LocationModel target, double radius) {
     final distance = _locationService.calculateDistance(
       position.latitude,
       position.longitude,
@@ -245,14 +278,8 @@ class LocationProvider with ChangeNotifier {
       target.longitude,
     );
     // _radius is already in meters, so direct comparison is fine here.
-    if (distance <= _radius && !_alarmTriggered) {
+    if (distance <= radius && !_alarmTriggered) {
       _triggerAlarm(target);
     }
-  }
-
-  @override
-  void dispose() {
-    _settingsProvider.removeListener(_updateRadius);
-    super.dispose();
   }
 }
