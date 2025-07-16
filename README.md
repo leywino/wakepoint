@@ -1,13 +1,34 @@
 <div align="center">
 
 <a href="https://github.com/leywino/wakepoint">
-  <img src=".github/readme_images/white_logo.png" alt="WakePoint icon" height="200px" width="200px" />
+  <img src=".github/readme_images/logo.png" alt="WakePoint icon" height="200px" width="200px" />
 </a>
 
-# WakePoint ⏰🗺️  
+# WakePoint ⏰🗺️
+
 **Never miss your stop again. Even when you're fast asleep.**
 
 </div>
+
+<p align="center">
+  <a href="https://flutter.dev">
+    <img src="https://img.shields.io/badge/Flutter-Framework-blue?logo=flutter" alt="Flutter" />
+  </a>
+  <img src="https://img.shields.io/badge/Platform-Android-lightgrey" alt="Platform" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" />
+  <img src="https://img.shields.io/badge/version-0.4.0-blue" alt="Version" />
+</p>
+
+<p align="center">
+  <br>
+  <img width="25%" src=".github/readme_images/Screenshot_Dark1.png"" alt="home screen page dark">
+  <img width="25%" src=".github/readme_images/Screenshot_Dark2.png"" alt="add location page dart">
+  <img width="25%" src=".github/readme_images/Screenshot_Dark3.png"" alt="settings page dark">
+  <br/>
+  <img width="25%" src=".github/readme_images/Screenshot_Light1.png" alt="home screen page light">
+  <img width="25%" src=".github/readme_images/Screenshot_Light2.png" alt="add location page light">
+  <img width="25%" src=".github/readme_images/Screenshot_Light3.png" alt="settings page light">
+</p>
 
 ---
 
@@ -17,26 +38,19 @@ WakePoint is a location-based alarm app designed especially for people who trave
 
 ## ✨ Features
 
-- 📍 **Offline Location Tracking**: Once a location is added, the app works completely offline — no internet required!
-- 🌐 **Google Maps Integration**: Search and set your destination using Google Maps.
-- 🎯 **Coordinate Support**: Directly add latitude and longitude as a location point.
-- 🔔 **Wakepoint Alarm**: Get notified when you're approaching your selected stop.
-- ⚙️ **Background Location Tracking**: The app continues to track in the background while you sleep.
-- 🎨 **Material Design UI**: Built with clean and modern Material Design components for a smooth and intuitive user experience.
-- 🛠️ **Still in Development**: Expect improvements, and your bug reports or feature suggestions are highly appreciated.
+* 📍 **Offline Location Tracking**: Once a location is added, the app works completely offline — no internet required!
+* 🌐 **Google Maps Integration**: Search and set your destination using Google Maps.
+* 🎯 **Coordinate Support**: Directly add latitude and longitude as a location point.
+* 🔔 **Wakepoint Alarm**: Get notified when you're approaching your selected stop.
+* ⚙️ **Background Location Tracking**: The app continues to track in the background while you sleep.
+* 🎨 **Material Design UI**: Built with clean and modern Material Design components for a smooth and intuitive user experience.
+* 🛠️ **Still in Development**: Expect improvements, and your bug reports or feature suggestions are highly appreciated.
 
 ## 📱 Use Cases
 
-- Long-distance bus/train travelers
-- Power naps during commutes
-- Anyone afraid of missing a destination while asleep
-
-## 📸 Screenshots
-
-<p align="left">
-  <img src=".github/readme_images/ss1.png" width="300" alt="Main Screen">
-  <img src=".github/readme_images/ss2.png" width="300" alt="Location Picker">
-</p>
+* Long-distance bus/train travelers
+* Power naps during commutes
+* Anyone afraid of missing a destination while asleep
 
 ## 💬 Contributing
 
