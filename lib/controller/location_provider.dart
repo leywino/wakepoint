@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart' hide AndroidResource;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
@@ -45,7 +45,7 @@ class LocationProvider with ChangeNotifier {
 
   void _initNotifications() {
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('ic_stat_notification');
     const settings = InitializationSettings(android: androidSettings);
 
     _notificationsPlugin.initialize(
@@ -107,11 +107,12 @@ class LocationProvider with ChangeNotifier {
 
   Future<void> _startForegroundService() async {
     const config = FlutterBackgroundAndroidConfig(
-      notificationTitle: "WakePoint Tracking",
-      notificationText: "Tracking location in background...",
-      notificationImportance: AndroidNotificationImportance.high,
-      enableWifiLock: true,
-    );
+        notificationTitle: appName,
+        notificationText: kNotificationTrackingText,
+        notificationImportance: AndroidNotificationImportance.normal,
+        enableWifiLock: true,
+        notificationIcon:
+            AndroidResource(name: "ic_stat_notification", defType: 'drawable'));
     if (await FlutterBackground.initialize(androidConfig: config)) {
       FlutterBackground.enableBackgroundExecution();
     }
@@ -119,8 +120,8 @@ class LocationProvider with ChangeNotifier {
 
   void stopTracking() {
     _locationService.stopListening();
-    _notificationsPlugin.cancel(1); // Cancel the tracking notification
-    _notificationsPlugin.cancel(0); // Cancel the alarm notification
+    _notificationsPlugin.cancel(1);
+    _notificationsPlugin.cancel(0);
     FlutterBackground.disableBackgroundExecution();
     _alarmTriggered = false;
     _isTracking = false;
@@ -169,7 +170,7 @@ class LocationProvider with ChangeNotifier {
         },
       );
     }).catchError((e) {
-      logHere("Failed to get initial position: $e");
+      logHere('$kLogInitialPositionFailed $e');
       Fluttertoast.showToast(msg: msgUnableToFetch);
       _isInitializingTracking = false;
       _isTracking = false;
@@ -189,22 +190,21 @@ class LocationProvider with ChangeNotifier {
       target.latitude,
       target.longitude,
     );
-    // Threshold is stored in KM, convert to meters for comparison
+
     final thresholdInMeters =
         _settingsProvider.notificationDistanceThresholdKm * 1000 +
             target.radius;
 
     if (_settingsProvider.isNotificationThresholdEnabled &&
         distanceInMeters > thresholdInMeters) {
-      logHere(
-          'Distance ($distanceInMeters m) is above notification threshold ($thresholdInMeters m). Not sending update.');
-      // Optional: Clear previous notification if it was showing a closer distance
-      // to avoid stale info when outside threshold.
+      logHere(kLogDistanceAboveThreshold
+          .replaceAll('%s', distanceInMeters.toStringAsFixed(0))
+          .replaceAll('%r', thresholdInMeters.toStringAsFixed(0)));
+
       _notificationsPlugin.cancel(1);
       return;
     }
 
-    // Use UnitConverter to format the distance based on the user's preferred unit system
     final formattedDistance = UnitConverter.formatDistanceForDisplay(
       distanceInMeters,
       _settingsProvider.preferredUnitSystem,
@@ -213,20 +213,19 @@ class LocationProvider with ChangeNotifier {
     if (!FlutterBackground.isBackgroundExecutionEnabled) return;
 
     final androidDetails = AndroidNotificationDetails(
-      'wakepoint_tracking',
+      kNotificationTrackingChannelId,
       target.name,
       importance: Importance.high,
       priority: Priority.high,
-      ongoing: true, // Indicates a persistent notification
-      autoCancel: false, // Prevents auto-cancellation on tap
+      ongoing: true,
+      autoCancel: false,
       showWhen: false,
-      onlyAlertOnce:
-          true, // This is for the notification channel, not the notification itself
       icon: 'ic_stat_notification',
+      onlyAlertOnce: true,
       actions: [
         const AndroidNotificationAction(
           'STOP_TRACKING',
-          'Stop Tracking',
+          btnDismissAlarm,
           showsUserInterface: true,
         ),
       ],
@@ -234,8 +233,8 @@ class LocationProvider with ChangeNotifier {
 
     final details = NotificationDetails(android: androidDetails);
 
-    await _notificationsPlugin.show(1, 'Tracking Active',
-        'Distance: $formattedDistance', details); // Use formattedDistance
+    await _notificationsPlugin.show(
+        1, target.name, '$labelDistance $formattedDistance', details);
   }
 
   Future<void> _triggerAlarm(LocationModel location) async {
@@ -243,27 +242,25 @@ class LocationProvider with ChangeNotifier {
     _alarmTriggered = true;
     currentSelectedLocation = location.name;
 
-    const androidDetails = AndroidNotificationDetails(
-      'wakepoint_alarm',
-      'WakePoint Alarm',
-      importance: Importance.max,
-      priority: Priority.high,
-      fullScreenIntent: true,
-      playSound: true,
-      autoCancel: true,
-      icon: 'ic_stat_notification',
-    );
+    final androidDetails = AndroidNotificationDetails(
+        kNotificationAlarmChannelId, '$kReachedLocationPrefix${location.name}',
+        importance: Importance.max,
+        priority: Priority.high,
+        fullScreenIntent: true,
+        playSound: true,
+        autoCancel: true,
+        icon: 'ic_stat_notification');
 
-    const details = NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
     await _notificationsPlugin.show(
-        0, 'WakePoint Alert!', 'You are near ${location.name}.', details);
+        0, titleWakePointAlert, '$msgYouAreNear${location.name}.', details);
 
     if (_settingsProvider.useOverlayAlarmFeature) {
-      const platform = MethodChannel('com.leywin.wakepoint/alarm');
+      const platform = MethodChannel(kMethodChannelAlarm);
       try {
         await platform.invokeMethod('startAlarm');
       } catch (e) {
-        logHere('Overlay alarm failed: $e');
+        logHere('$kLogOverlayAlarmFailed $e');
       }
     }
 
@@ -277,7 +274,6 @@ class LocationProvider with ChangeNotifier {
       target.latitude,
       target.longitude,
     );
-    // _radius is already in meters, so direct comparison is fine here.
     if (distance <= radius && !_alarmTriggered) {
       _triggerAlarm(target);
     }

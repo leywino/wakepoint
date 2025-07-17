@@ -141,6 +141,29 @@ const String msgBatteryNeededForPersistence =
     "Required to prevent the app from being stopped by the system.";
 
 // ─────────────────────────────────────────────
+// ▶ Location Provider Notifications
+// ─────────────────────────────────────────────
+// const String kNotificationTrackingTitle = "Tracking Active";
+const String kNotificationTrackingText = "Tracking location in background...";
+const String kNotificationAlarmChannelId = "wakepoint_alarm";
+const String kNotificationTrackingChannelId = "wakepoint_tracking";
+
+
+// ─────────────────────────────────────────────
+// ▶ Location Provider Toasts/Messages
+// ─────────────────────────────────────────────
+const String kLogInitialPositionFailed = "Failed to get initial position:";
+const String kLogOverlayAlarmFailed = "Overlay alarm failed:";
+const String kLogDistanceAboveThreshold =
+    "Distance (%s m) is above notification threshold (%r m). Not sending update.";
+const String kReachedLocationPrefix = "Reached "; // Used for alarm notification text
+
+// ─────────────────────────────────────────────
+// ▶ Method Channel
+// ─────────────────────────────────────────────
+const String kMethodChannelAlarm = "com.leywin.wakepoint/alarm";
+
+// ─────────────────────────────────────────────
 // ▶ General UI
 // ─────────────────────────────────────────────
 const String btnCancel = "Cancel";
