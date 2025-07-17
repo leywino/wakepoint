@@ -59,8 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             verticalSpaceMedium,
             _buildSectionTitle(sectionGeneral, theme),
             _buildThemeSelection(settingsProvider),
-            _buildUnitSystemSelection(
-                settingsProvider),
+            _buildUnitSystemSelection(settingsProvider),
             verticalSpaceMedium,
             _buildSectionTitle(sectionTracking, theme),
             _buildTrackingSettings(settingsProvider),
@@ -186,8 +185,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  
-
   Widget _buildAlarmSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
@@ -206,6 +203,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
           disabled: !_overlayGranted,
           subtitle: msgOverlayRequired,
           icon: Icons.layers,
+        ),
+        _buildAlarmDurationDropdownRow(settingsProvider)
+      ],
+    );
+  }
+
+  Row _buildAlarmDurationDropdownRow(SettingsProvider settingsProvider) {
+    final isDisabled = !settingsProvider.useOverlayAlarmFeature;
+    return Row(
+      children: [
+        const Icon(Icons.timer, color: Colors.white),
+        const SizedBox(width: 12),
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            decoration: const InputDecoration(
+              labelText: labelAlarmDuration,
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              border: UnderlineInputBorder(),
+            ),
+            value: settingsProvider.alarmPlaybackDurationSeconds,
+            items: const [
+              DropdownMenuItem(
+                  value: alarmDurationDismissed,
+                  child: Text(alarmDurationLabelDismissed)),
+              DropdownMenuItem(
+                  value: alarmDuration15s, child: Text(alarmDurationLabel15s)),
+              DropdownMenuItem(
+                  value: alarmDuration30s, child: Text(alarmDurationLabel30s)),
+              DropdownMenuItem(
+                  value: alarmDuration60s, child: Text(alarmDurationLabel60s)),
+              DropdownMenuItem(
+                  value: alarmDuration90s, child: Text(alarmDurationLabel90s)),
+            ],
+            onChanged: isDisabled
+                ? null
+                : (value) {
+                    if (value != null) {
+                      settingsProvider.alarmPlaybackDurationSeconds = value;
+                    }
+                  },
+          ),
         ),
       ],
     );

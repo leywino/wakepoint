@@ -90,4 +90,14 @@ class SettingsProvider with ChangeNotifier {
     _prefs?.setInt('preferred_unit_system', system.index);
     notifyListeners();
   }
+
+  int get alarmPlaybackDurationSeconds {
+    return _prefs?.getInt('alarm_playback_duration_seconds') ??
+        30;
+  }
+
+  set alarmPlaybackDurationSeconds(int seconds) {
+    _prefs?.setInt('alarm_playback_duration_seconds', seconds);
+    notifyListeners();
+  }
 }

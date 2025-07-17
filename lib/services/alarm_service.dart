@@ -8,8 +8,17 @@ class AlarmService {
 
   Future<void> startAlarm({
     required bool enableVibration,
+    required int durationSeconds,
+    Function? onAlarmEnd,
   }) async {
     if (enableVibration) _startVibrationPattern();
+
+    if (durationSeconds > 0) {
+      Future.delayed(Duration(seconds: durationSeconds), () {
+        stopAlarm();
+        onAlarmEnd?.call();
+      });
+    }
 
     try {
       await _playDefaultRingtone();

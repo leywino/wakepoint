@@ -35,8 +35,14 @@ class _AlarmScreenState extends State<AlarmScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _alarmService.startAlarm(
         enableVibration: settingsProvider.enableAlarmVibration,
+        durationSeconds: settingsProvider.alarmPlaybackDurationSeconds,
+        onAlarmEnd: _onAlarmEnd,
       );
     });
+  }
+
+  void _onAlarmEnd() {
+    _stopAlarm();
   }
 
   void _stopAlarm() {

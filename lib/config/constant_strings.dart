@@ -31,6 +31,13 @@ const String msgAlreadyWithinRadius =
     "You're already within the destination radius.";
 const String msgFetchingLocation = "Fetching your location...";
 const String msgUnableToFetch = "Fetching your location...";
+const String labelAlarmDuration = "Alarm Duration";
+const String valPlayUntilDismissed = "Until dismissed";
+const String alarmDurationLabelDismissed = 'Until dismissed';
+const String alarmDurationLabel15s = '15 seconds';
+const String alarmDurationLabel30s = '30 seconds';
+const String alarmDurationLabel60s = '60 seconds';
+const String alarmDurationLabel90s = '90 seconds';
 
 // ─────────────────────────────────────────────
 // ▶ Tracking Status Messages
@@ -148,7 +155,6 @@ const String kNotificationTrackingText = "Tracking location in background...";
 const String kNotificationAlarmChannelId = "wakepoint_alarm";
 const String kNotificationTrackingChannelId = "wakepoint_tracking";
 
-
 // ─────────────────────────────────────────────
 // ▶ Location Provider Toasts/Messages
 // ─────────────────────────────────────────────
@@ -156,7 +162,8 @@ const String kLogInitialPositionFailed = "Failed to get initial position:";
 const String kLogOverlayAlarmFailed = "Overlay alarm failed:";
 const String kLogDistanceAboveThreshold =
     "Distance (%s m) is above notification threshold (%r m). Not sending update.";
-const String kReachedLocationPrefix = "Reached "; // Used for alarm notification text
+const String kReachedLocationPrefix =
+    "Reached "; // Used for alarm notification text
 
 // ─────────────────────────────────────────────
 // ▶ Method Channel

@@ -47,7 +47,7 @@ const List<int> ksRadiusOptions = [
   3500,
   4000,
   4500,
-  5000,
+  5000
 ];
 
 const List<double> kcDistanceNumberList = [
@@ -57,3 +57,18 @@ const List<double> kcDistanceNumberList = [
   12.5,
   15.0,
 ];
+
+const int alarmDurationDismissed = 0;
+const int alarmDuration15s = 15;
+const int alarmDuration30s = 30;
+const int alarmDuration60s = 60;
+const int alarmDuration90s = 90;
+
+const List<int> alarmDurationOptions = [
+  alarmDurationDismissed,
+  alarmDuration15s,
+  alarmDuration30s,
+  alarmDuration60s,
+  alarmDuration90s,
+];
+
