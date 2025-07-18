@@ -80,6 +80,19 @@ class LocationProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void editLocation(DateTime createdAt, LocationModel updatedLocation) {
+    final index = _locations.indexWhere((loc) => loc.createdAt == createdAt);
+    if (index != -1) {
+      _locations[index] = updatedLocation;
+      _saveLocations();
+      notifyListeners();
+    } else {
+      logHere(
+          '❌ Attempted to edit location with unknown createdAt: $createdAt');
+      Fluttertoast.showToast(msg: msgLocationNotFound);
+    }
+  }
+
   void removeLocation(int index) {
     _locations.removeAt(index);
     if (_selectedLocationIndex == index) _selectedLocationIndex = null;

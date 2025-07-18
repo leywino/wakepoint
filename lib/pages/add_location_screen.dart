@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
@@ -15,9 +16,14 @@ const String _logTag = "AddLocationScreen";
 void logHere(String message) => log(message, tag: _logTag);
 
 class AddLocationScreen extends StatefulWidget {
-  const AddLocationScreen({super.key, required this.initialPosition});
+  const AddLocationScreen({
+    super.key,
+    required this.initialPosition,
+    this.locationToEdit,
+  });
 
   final Position initialPosition;
+  final LocationModel? locationToEdit;
 
   @override
   State<AddLocationScreen> createState() => _AddLocationScreenState();
@@ -29,12 +35,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   LatLng? _selectedLatLng;
   String? _selectedLocationName;
   double _radius = 150;
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  DateTime? _originalCreatedAt;
 
   Future<void> _updateLocation(String name, LatLng latLng) async {
     setState(() {
@@ -64,22 +65,60 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   }
 
   void _saveLocation() {
-    if (_selectedLatLng != null && _selectedLocationName != null) {
-      final provider = Provider.of<LocationProvider>(context, listen: false);
-      provider.addLocation(LocationModel(
-          name: _selectedLocationName!,
-          latitude: _selectedLatLng!.latitude,
-          longitude: _selectedLatLng!.longitude,
-          isEnabled: true,
-          radius: _radius));
+    final provider = Provider.of<LocationProvider>(context, listen: false);
+    final newLocation = LocationModel(
+      name: _selectedLocationName!,
+      latitude: _selectedLatLng!.latitude,
+      longitude: _selectedLatLng!.longitude,
+      isEnabled: widget.locationToEdit?.isEnabled ?? true,
+      radius: _radius,
+      createdAt: _originalCreatedAt,
+    );
 
-      logHere("Location saved: $_selectedLocationName at $_selectedLatLng");
-      Navigator.pop(context);
+    if (widget.locationToEdit != null) {
+      provider.editLocation(_originalCreatedAt!, newLocation);
+      logHere("Location updated: $_selectedLocationName at $_selectedLatLng");
+      Fluttertoast.showToast(msg: msgLocationUpdated);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a location first!')),
-      );
+      provider.addLocation(newLocation);
+      logHere("Location added: $_selectedLocationName at $_selectedLatLng");
+      Fluttertoast.showToast(msg: msgLocationAdded);
     }
+
+    Navigator.pop(context);
+  }
+
+  _init() {
+    if (widget.locationToEdit != null) {
+      _selectedLocationName = widget.locationToEdit!.name;
+      _searchController.text = _selectedLocationName!;
+      _selectedLatLng = LatLng(
+          widget.locationToEdit!.latitude, widget.locationToEdit!.longitude);
+      _radius = widget.locationToEdit!.radius;
+      _originalCreatedAt = widget.locationToEdit!.createdAt;
+    } else {
+      _selectedLatLng = LatLng(
+          widget.initialPosition.latitude, widget.initialPosition.longitude);
+      _reverseGeocode(_selectedLatLng!.latitude, _selectedLatLng!.longitude)
+          .then((name) {
+        setState(() {
+          _selectedLocationName = name;
+          _searchController.text = name;
+        });
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    _init();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -90,26 +129,29 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(labelAddLocation,
-              style: TextStyle(fontFamily: kDefaultFont)),
+          title: Text(
+              widget.locationToEdit != null
+                  ? labelEditLocation
+                  : labelAddLocation,
+              style: const TextStyle(fontFamily: kDefaultFont)),
           centerTitle: true,
         ),
         body: Column(
           children: [
             _buildSearchField(context),
-            sizedBoxH1,
             Expanded(
               child: MapWidget(
-                initialPosition: LatLng(widget.initialPosition.latitude,
-                    widget.initialPosition.longitude),
+                initialPosition: _selectedLatLng!,
                 isDark: isDark,
                 onMapCreated: (controller) => _mapController = controller,
                 selectedLatLng: _selectedLatLng,
+                radius: _radius,
                 onTap: (latLng) async {
                   final name =
                       await _reverseGeocode(latLng.latitude, latLng.longitude);
                   await _updateLocation(name, latLng);
-                },onRadiusChanged: (radius) {
+                },
+                onRadiusChanged: (radius) {
                   setState(() {
                     _radius = radius;
                   });

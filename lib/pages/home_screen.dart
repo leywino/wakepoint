@@ -56,6 +56,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _navigateToEditLocationScreen(LocationModel locationToEdit) {
+    if (_initialPosition == null) {
+      Fluttertoast.showToast(
+          msg: "Please wait, fetching current location first.");
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddLocationScreen(
+          initialPosition: _initialPosition!,
+          locationToEdit: locationToEdit,
+        ),
+      ),
+    ).then((_) {
+      _clearSelection();
+    });
+  }
+
   void _goToSettings() {
     Navigator.push(
       context,
@@ -82,14 +101,38 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _deleteSelectedLocations(LocationProvider provider) {
-    setState(() {
-      // Delete in reverse order to avoid index issues if multiple are selected
-      for (var index in _selectedItems.toList().reversed) {
-        provider.removeLocation(index);
-      }
-      _selectedItems.clear();
-      _isSelectionMode = false;
-    });
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Confirm Deletion"),
+          content: Text(
+              "Are you sure you want to delete ${_selectedItems.length} selected location(s)?"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text("Delete"),
+              onPressed: () {
+                Navigator.of(context).pop();
+                setState(() {
+                  for (var index in _selectedItems.toList().reversed) {
+                    provider.removeLocation(index);
+                  }
+                  _selectedItems.clear();
+                  _isSelectionMode = false;
+                  Fluttertoast.showToast(msg: "Location(s) deleted");
+                });
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _fetchInitialPosition() async {
@@ -110,17 +153,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _clearSelection() {
+    if (_isSelectionMode) {
+      setState(() {
+        _selectedItems.clear();
+        _isSelectionMode = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer2<LocationProvider, SettingsProvider>(
       builder: (context, locationProvider, settingsProvider, child) {
-        return Scaffold(
-          appBar: _buildAppBar(locationProvider),
-          body: Padding(
-            padding: const EdgeInsets.all(s16),
-            child: _buildBody(locationProvider, settingsProvider),
+        return GestureDetector(
+          onTap: _clearSelection,
+          behavior: HitTestBehavior.translucent,
+          child: Scaffold(
+            appBar: _buildAppBar(locationProvider),
+            body: Padding(
+              padding: const EdgeInsets.all(s16),
+              child: _buildBody(locationProvider, settingsProvider),
+            ),
+            floatingActionButton: _buildFloatingActionButton(),
           ),
-          floatingActionButton: _buildFloatingActionButton(),
         );
       },
     );
@@ -131,9 +187,29 @@ class _HomeScreenState extends State<HomeScreen> {
       title: const Text(appName,
           style: TextStyle(fontFamily: kDefaultFont, fontSize: s20)),
       actions: _isSelectionMode
-          ? [_buildDeleteButton(locationProvider)]
+          ? _buildSelectionModeActions(locationProvider)
           : [_buildTrackingAndSettingsButtons(locationProvider)],
     );
+  }
+
+  List<Widget> _buildSelectionModeActions(LocationProvider locationProvider) {
+    List<Widget> actions = [];
+    if (_selectedItems.length == 1) {
+      final int selectedIndex = _selectedItems.first;
+      final LocationModel locationToEdit =
+          locationProvider.locations[selectedIndex];
+      actions.add(
+        IconButton(
+          icon: const Icon(Icons.edit),
+          onPressed: () {
+            _clearSelection();
+            _navigateToEditLocationScreen(locationToEdit);
+          },
+        ),
+      );
+    }
+    actions.add(_buildDeleteButton(locationProvider));
+    return actions;
   }
 
   Widget _buildDeleteButton(LocationProvider locationProvider) {

@@ -12,7 +12,7 @@ class LocationModel {
     required this.longitude,
     required this.isEnabled,
     required this.radius,
-     this.createdAt,
+    this.createdAt,
   });
 
   Map<String, dynamic> toJson() => {
@@ -51,4 +51,3 @@ class LocationModel {
     );
   }
 }
-
