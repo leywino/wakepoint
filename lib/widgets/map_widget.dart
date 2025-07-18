@@ -142,11 +142,10 @@ class _MapWidgetState extends State<MapWidget> {
         Provider.of<SettingsProvider>(context, listen: false);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: s15, vertical: s12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Text(
-            'Radius: ${UnitConverter.formatDistanceForDisplay(_radius, settingsProvider.preferredUnitSystem)}',
+            'Radius',
             style: TextStyle(
               fontSize: s14,
               fontWeight: FontWeight.bold,
@@ -154,41 +153,46 @@ class _MapWidgetState extends State<MapWidget> {
               color: theme.colorScheme.onSurface,
             ),
           ),
-          //todo: slider value format is not unit supported
-          Slider(
-            padding: EdgeInsets.zero,
-            value: _radius,
-            min: ksRadiusOptions.first.toDouble(),
-            max: ksRadiusOptions.last.toDouble(),
-            divisions: ksRadiusOptions.length - 1,
-            onChanged: (newVal) {
-              final snapped = ksRadiusOptions.reduce(
-                  (a, b) => (a - newVal).abs() < (b - newVal).abs() ? a : b);
+          horizontalSpaceMedium,
+          Expanded(
+            child: Slider(
+              padding: EdgeInsets.zero,
+              value: _radius,
+              min: ksRadiusOptions.first.toDouble(),
+              max: ksRadiusOptions.last.toDouble(),
+              // divisions: ksRadiusOptions.length - 1,
+              onChanged: (newVal) {
+                final snapped = ksRadiusOptions.reduce(
+                    (a, b) => (a - newVal).abs() < (b - newVal).abs() ? a : b);
 
-              setState(() {
-                _radius = newVal;
-              });
-
-              _debouncer.run(() {
-                logHere("Radius changed (debounced): $snapped");
                 setState(() {
-                  _radius = snapped.toDouble();
-                  _currentZoom = _calculateZoomLevel(_radius);
-                  widget.onRadiusChanged?.call(_radius);
+                  _radius = newVal;
                 });
 
-                if (widget.selectedLatLng != null) {
-                  _mapController.animateCamera(
-                    CameraUpdate.newLatLngZoom(
-                        widget.selectedLatLng!, _currentZoom),
-                  );
-                }
-              });
-            },
-            label: _radius.round().toString(),
-            activeColor: theme.colorScheme.primary,
-            inactiveColor: theme.colorScheme.primary.withValues(alpha: 0.3),
+                _debouncer.run(() {
+                  logHere("Radius changed (debounced): $snapped");
+                  setState(() {
+                    _radius = snapped.toDouble();
+                    _currentZoom = _calculateZoomLevel(_radius);
+                    widget.onRadiusChanged?.call(_radius);
+                  });
+
+                  if (widget.selectedLatLng != null) {
+                    _mapController.animateCamera(
+                      CameraUpdate.newLatLngZoom(
+                          widget.selectedLatLng!, _currentZoom),
+                    );
+                  }
+                });
+              },
+              label: _radius.round().toString(),
+              activeColor: theme.colorScheme.primary,
+              inactiveColor: theme.colorScheme.primary.withValues(alpha: 0.3),
+            ),
           ),
+          horizontalSpaceMedium,
+          Text(UnitConverter.formatDistanceForDisplay(
+              _radius, settingsProvider.preferredUnitSystem)),
         ],
       ),
     );
