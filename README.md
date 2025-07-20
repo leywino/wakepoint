@@ -16,7 +16,7 @@
   </a>
   <img src="https://img.shields.io/badge/Platform-Android-lightgrey" alt="Platform" />
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" />
-  <img src="https://img.shields.io/badge/version-0.4.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.5.0-blue" alt="Version" />
 </p>
 
 <p align="center">
