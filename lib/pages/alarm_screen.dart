@@ -43,6 +43,7 @@ class _AlarmScreenState extends State<AlarmScreen>
   }
 
   void _onAlarmEnd() {
+    if (!mounted) return;
     _stopAlarm();
   }
 
