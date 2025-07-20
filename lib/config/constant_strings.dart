@@ -147,6 +147,9 @@ const String msgOverlayNeededForAlerts =
     "Required to show alerts over the lock screen.";
 const String msgBatteryNeededForPersistence =
     "Required to prevent the app from being stopped by the system.";
+const String labelAlarmSound = "Sound for Alarm";
+const String valRingtone = "Ringtone";
+const String valAlarm = "Alarm";
 
 // ─────────────────────────────────────────────
 // ▶ Location Provider Notifications
@@ -172,6 +175,7 @@ const String msgLocationAdded = "Location added succesfully.";
 // ▶ Method Channel
 // ─────────────────────────────────────────────
 const String kMethodChannelAlarm = "com.leywin.wakepoint/alarm";
+const String kMethodChannelTone = "com.leywin.wakepoint/tone";
 
 // ─────────────────────────────────────────────
 // ▶ General UI

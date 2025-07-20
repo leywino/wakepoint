@@ -36,6 +36,7 @@ class _AlarmScreenState extends State<AlarmScreen>
       _alarmService.startAlarm(
         enableVibration: settingsProvider.enableAlarmVibration,
         durationSeconds: settingsProvider.alarmPlaybackDurationSeconds,
+        alarmSoundType: settingsProvider.alarmSoundType,
         onAlarmEnd: _onAlarmEnd,
       );
     });

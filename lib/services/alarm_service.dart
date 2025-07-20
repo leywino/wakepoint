@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
+import 'package:wakepoint/config/constants.dart';
+import 'package:wakepoint/controller/settings_provider.dart';
 
 class AlarmService {
   bool _isVibrating = false;
@@ -9,6 +11,7 @@ class AlarmService {
   Future<void> startAlarm({
     required bool enableVibration,
     required int durationSeconds,
+    required AlarmSoundType alarmSoundType,
     Function? onAlarmEnd,
   }) async {
     if (enableVibration) _startVibrationPattern();
@@ -21,7 +24,7 @@ class AlarmService {
     }
 
     try {
-      await _playDefaultRingtone();
+      await _playTone(alarmSoundType);
     } catch (_) {
       // Silently fail
     }
@@ -31,7 +34,7 @@ class AlarmService {
     _isVibrating = false;
     _vibrationTimer?.cancel();
     Vibration.cancel();
-    _stopRingtone();
+    _stopTone();
   }
 
   void _startVibrationPattern() {
@@ -49,13 +52,14 @@ class AlarmService {
     loop();
   }
 
-  Future<void> _playDefaultRingtone() async {
-    const platform = MethodChannel('com.leywin.wakepoint/ringtone');
-    await platform.invokeMethod('playRingtone');
+  Future<void> _playTone(AlarmSoundType alarmSoundType) async {
+    const platform = MethodChannel(kMethodChannelTone);
+    await platform
+        .invokeMethod('playTone', {"type": alarmSoundType.name.toLowerCase()});
   }
 
-  Future<void> _stopRingtone() async {
-    const platform = MethodChannel('com.leywin.wakepoint/ringtone');
-    await platform.invokeMethod('stopRingtone');
+  Future<void> _stopTone() async {
+    const platform = MethodChannel(kMethodChannelTone);
+    await platform.invokeMethod('stopTone');
   }
 }

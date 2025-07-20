@@ -204,7 +204,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           subtitle: msgOverlayRequired,
           icon: Icons.layers,
         ),
-        _buildAlarmDurationDropdownRow(settingsProvider)
+        _buildDropdownTile(
+          labelAlarmSound,
+          _getAlarmSoundLabel(settingsProvider.alarmSoundType),
+          [
+            _getAlarmSoundLabel(AlarmSoundType.ringtone),
+            _getAlarmSoundLabel(AlarmSoundType.alarm),
+          ],
+          (value) {
+            final newType = _getAlarmSoundTypeFromString(value!);
+            settingsProvider.alarmSoundType = newType;
+          },
+          icon: Icons.music_note,
+        ),
+        _buildAlarmDurationDropdownRow(settingsProvider),
       ],
     );
   }
@@ -213,8 +226,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isDisabled = !settingsProvider.useOverlayAlarmFeature;
     return Row(
       children: [
-        const Icon(Icons.timer, color: Colors.white),
-        const SizedBox(width: 12),
+        const Icon(Icons.timer),
+        const SizedBox(width: s12),
         Expanded(
           child: DropdownButtonFormField<int>(
             decoration: const InputDecoration(
@@ -407,6 +420,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 2;
       default:
         throw ArgumentError(msgInvalidAccuracy(accuracy));
+    }
+  }
+
+  String _getAlarmSoundLabel(AlarmSoundType type) {
+    switch (type) {
+      case AlarmSoundType.ringtone:
+        return valRingtone;
+      case AlarmSoundType.alarm:
+        return valAlarm;
+    }
+  }
+
+  AlarmSoundType _getAlarmSoundTypeFromString(String value) {
+    switch (value) {
+      case valRingtone:
+        return AlarmSoundType.ringtone;
+      case valAlarm:
+        return AlarmSoundType.alarm;
+      default:
+        return AlarmSoundType.ringtone;
     }
   }
 }

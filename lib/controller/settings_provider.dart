@@ -12,6 +12,8 @@ List<LocationAccuracy> locationAccuracyOptions = [
   LocationAccuracy.low,
 ];
 
+enum AlarmSoundType { ringtone, alarm }
+
 class SettingsProvider with ChangeNotifier {
   final SharedPreferences? _prefs;
 
@@ -92,12 +94,22 @@ class SettingsProvider with ChangeNotifier {
   }
 
   int get alarmPlaybackDurationSeconds {
-    return _prefs?.getInt('alarm_playback_duration_seconds') ??
-        30;
+    return _prefs?.getInt('alarm_playback_duration_seconds') ?? 30;
   }
 
   set alarmPlaybackDurationSeconds(int seconds) {
     _prefs?.setInt('alarm_playback_duration_seconds', seconds);
+    notifyListeners();
+  }
+
+  AlarmSoundType get alarmSoundType {
+    final index =
+        _prefs?.getInt('alarm_sound_type') ?? AlarmSoundType.ringtone.index;
+    return AlarmSoundType.values[index];
+  }
+
+  set alarmSoundType(AlarmSoundType type) {
+    _prefs?.setInt('alarm_sound_type', type.index);
     notifyListeners();
   }
 }
