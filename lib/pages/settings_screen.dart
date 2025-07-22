@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(s16),
           children: [
-            _buildTitle(),
+            _buildTitle(theme),
             verticalSpaceMedium,
             _buildSectionTitle(sectionGeneral, theme),
             _buildThemeSelection(settingsProvider),
@@ -78,10 +78,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildTitle() {
-    return const Text(
+  Widget _buildTitle(ThemeData theme) {
+    return Text(
       sectionSettings,
-      style: TextStyle(fontSize: s32, fontWeight: FontWeight.bold),
+      style: TextStyle(
+        fontSize: s32,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      ),
     );
   }
 
