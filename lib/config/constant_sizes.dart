@@ -52,6 +52,7 @@ const double s50 = 50.0;
 const double s60 = 60.0;
 const double s65 = 65.0;
 const double s70 = 70.0;
+const double s75 = 75.0;
 const double s80 = 80.0;
 const double s96 = 96.0;
 const double s100 = 100.0;

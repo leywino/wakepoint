@@ -63,8 +63,8 @@ String msgPermissionExplanation(String name) =>
 // ▶ Setup Onboarding
 // ─────────────────────────────────────────────
 const String titleWelcome = "Welcome!";
-const String msgPickDefaults =
-    "Let's pick some defaults. You can always change these in settings later.";
+const String msgGrantPermissions =
+    "Let's grant a few permissions to get things working. You can change them later in settings.";
 const String labelRequired = "Required";
 const String msgLocationRequired =
     "To track your location, please grant the Location Permission.";

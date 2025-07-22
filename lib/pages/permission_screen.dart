@@ -148,40 +148,128 @@ class _PermissionScreenState extends State<PermissionScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: s20, vertical: s40),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            verticalSpaceTiny,
-            _buildDescription(context),
-            verticalSpaceMassive,
-            _buildPermissionSection(
-              context,
-              title: labelRequired,
-              permissions: [
-                _buildPermissionTile(permLocation, msgLocationRequired,
-                    _locationGranted, _requestLocationPermission),
-                _buildPermissionTile(permNotification, msgNotificationRequired,
-                    _notificationGranted, _requestNotificationPermission),
-              ],
+            Expanded(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: s20, vertical: s24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    verticalSpaceSmall,
+                    _buildDescription(context),
+                    const SizedBox(height: 24),
+                    _buildPermissionSection(
+                      context,
+                      title: labelRequired,
+                      permissions: [
+                        _buildFlatPermissionTile(
+                          permLocation,
+                          msgLocationRequired,
+                          _locationGranted,
+                          _requestLocationPermission,
+                        ),
+                        _buildFlatPermissionTile(
+                          permNotification,
+                          msgNotificationRequired,
+                          _notificationGranted,
+                          _requestNotificationPermission,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPermissionSection(
+                      context,
+                      title: labelOptional,
+                      permissions: [
+                        _buildFlatPermissionTile(
+                          permBattery,
+                          msgBatteryRecommended,
+                          _batteryGranted,
+                          _requestBatteryPermission,
+                        ),
+                        _buildFlatPermissionTile(
+                          permOverlay,
+                          msgOverlayRecommended,
+                          _overlayGranted,
+                          _requestOverlayPermission,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            verticalSpaceMedium,
-            _buildPermissionSection(
-              context,
-              title: labelOptional,
-              permissions: [
-                _buildPermissionTile(permBattery, msgBatteryRecommended,
-                    _batteryGranted, _requestBatteryPermission),
-                _buildPermissionTile(permOverlay, msgOverlayRecommended,
-                    _overlayGranted, _requestOverlayPermission),
-              ],
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: _buildGetStartedButton(isMandatoryGranted),
             ),
-            const Spacer(),
-            _buildGetStartedButton(isMandatoryGranted),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFlatPermissionTile(String title, String description,
+      bool isGranted, VoidCallback onPressed) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontFamily: kDefaultFont,
+                          fontWeight: FontWeight.w500,
+                        )),
+                const SizedBox(height: 4),
+                Text(description,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontFamily: kDefaultFont,
+                          color: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.color
+                              ?.withValues(alpha: 0.7),
+                        )),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: isGranted ? null : onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              minimumSize: const Size(s75, s40),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(s16),
+                side: BorderSide(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+            child: isGranted
+                ? Icon(Icons.check,
+                    color: Theme.of(context).colorScheme.primary)
+                : const Text(
+                    btnGrant,
+                    style: TextStyle(fontSize: s14, fontFamily: kDefaultFont),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -211,7 +299,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
   /// Helper to build the descriptive text
   Widget _buildDescription(BuildContext context) {
     return Text(
-      msgPickDefaults,
+      msgGrantPermissions,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             fontFamily: kDefaultFont,
           ),
@@ -244,47 +332,19 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// Helper to build a single permission tile
-  Widget _buildPermissionTile(String title, String description, bool isGranted,
-      VoidCallback onPressed) {
-    return ListTile(
-      title: Text(
-        title,
-        style: const TextStyle(fontFamily: kDefaultFont),
-      ),
-      subtitle: Text(
-        description,
-        style: const TextStyle(fontFamily: kDefaultFont),
-      ),
-      trailing: ElevatedButton(
-        onPressed: isGranted ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(s16)),
-          padding: const EdgeInsets.symmetric(horizontal: s12, vertical: s8),
-          minimumSize: const Size(s80, s30),
-        ),
-        child: Text(
-          isGranted ? labelGranted : btnGrant,
-          style: const TextStyle(fontSize: s14),
-        ),
-      ),
-    );
-  }
-
   /// Helper to build the "Get Started" button
   Widget _buildGetStartedButton(bool isMandatoryGranted) {
     return ElevatedButton(
       onPressed: isMandatoryGranted ? _completeSetup : null,
       style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: s15),
-        minimumSize: const Size(double.infinity, s50),
+        padding: const EdgeInsets.symmetric(vertical: s10),
+        minimumSize: const Size(double.infinity, s30),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(s16)),
       ),
       child: const Text(
         btnGetStarted,
         style: TextStyle(
-          fontSize: s18,
+          fontSize: s16,
           fontWeight: FontWeight.bold,
           fontFamily: kDefaultFont,
         ),
