@@ -107,11 +107,13 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
-  void toggleTracking() {
+  void toggleTracking() async {
     _isTracking = !_isTracking;
     if (_isTracking) {
-      _startTracking();
-      _startForegroundService();
+      bool started = await _startTracking();
+      if (started) {
+        _startForegroundService();
+      }
     } else {
       stopTracking();
     }
@@ -143,8 +145,8 @@ class LocationProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void _startTracking() {
-    if (_selectedLocationIndex == null || !_isTracking) return;
+  Future<bool> _startTracking() async {
+    if (_selectedLocationIndex == null || !_isTracking) return false;
 
     final target = _locations[_selectedLocationIndex!];
 
@@ -169,7 +171,7 @@ class LocationProvider with ChangeNotifier {
         _isInitializingTracking = false;
         _isTracking = false;
         notifyListeners();
-        return;
+        return false;
       }
 
       _locationService.startListening(
@@ -182,13 +184,16 @@ class LocationProvider with ChangeNotifier {
           notifyListeners();
         },
       );
+      return true;
     }).catchError((e) {
       logHere('$kLogInitialPositionFailed $e');
       Fluttertoast.showToast(msg: msgUnableToFetch);
       _isInitializingTracking = false;
       _isTracking = false;
       notifyListeners();
+      return false;
     });
+    return false;
   }
 
   void setAlarmCallback(VoidCallback callback) {
