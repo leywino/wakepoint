@@ -7,24 +7,18 @@ part 'geometry.g.dart';
 
 @JsonSerializable()
 class Geometry extends Equatable {
-	final Location? location;
+  final Location? location;
 
-	const Geometry({this.location});
+  const Geometry({this.location});
 
-	factory Geometry.fromJson(Map<String, dynamic> json) {
-		return _$GeometryFromJson(json);
-	}
+  factory Geometry.fromJson(Map<String, dynamic> json) => _$GeometryFromJson(json);
 
-	Map<String, dynamic> toJson() => _$GeometryToJson(this);
+  Map<String, dynamic> toJson() => _$GeometryToJson(this);
 
-	Geometry copyWith({
-		Location? location,
-	}) {
-		return Geometry(
-			location: location ?? this.location,
-		);
-	}
+  Geometry copyWith({Location? location}) => Geometry(
+        location: location ?? this.location,
+      );
 
-	@override
-	List<Object?> get props => [location];
+  @override
+  List<Object?> get props => [location];
 }

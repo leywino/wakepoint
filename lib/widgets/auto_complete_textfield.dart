@@ -2,46 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:open_location_code/open_location_code.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:wakepoint/config/constants.dart';
-import 'package:wakepoint/models/predictions/location.dart';
-import 'package:wakepoint/models/predictions/prediction.dart';
-import 'package:wakepoint/utils/utils.dart';
+
+import 'package:wakepoint/models/place.dart';
 import 'package:wakepoint/services/places_service.dart';
+import 'package:wakepoint/utils/utils.dart';
 
 const String _logTag = "AutoCompleteTextField";
 void logHere(String message) => log(message, tag: _logTag);
-
-typedef ItemClick = void Function(Prediction prediction);
 
 class AutoCompleteTextField extends StatefulWidget {
   final TextEditingController controller;
   final String apiKey;
   final InputDecoration decoration;
   final TextStyle textStyle;
-  final ItemClick? onItemTap;
-  final Function(Location)? getPredictionWithLatLng;
+
+  /// Called when a place is selected
+  final void Function(Place place)? onPlaceSelected;
+
+  /// Called when user enters raw lat,lng or plus code
   final void Function(double lat, double lng)? onManualLatLngDetected;
+
   final double? latitude;
   final double? longitude;
   final bool isCrossBtnShown;
   final int debounceTime;
 
-  const AutoCompleteTextField(
-      {super.key,
-      required this.controller,
-      required this.apiKey,
-      this.decoration = const InputDecoration(),
-      this.textStyle = const TextStyle(),
-      this.onItemTap,
-      this.latitude,
-      this.longitude,
-      this.debounceTime = 600,
-      this.isCrossBtnShown = true,
-      this.getPredictionWithLatLng,
-      this.onManualLatLngDetected});
+  const AutoCompleteTextField({
+    super.key,
+    required this.controller,
+    required this.apiKey,
+    this.decoration = const InputDecoration(),
+    this.textStyle = const TextStyle(),
+    this.onPlaceSelected,
+    this.onManualLatLngDetected,
+    this.latitude,
+    this.longitude,
+    this.debounceTime = 600,
+    this.isCrossBtnShown = true,
+  });
 
   @override
-  State<AutoCompleteTextField> createState() => _AutoCompleteTextFieldState();
+  State<AutoCompleteTextField> createState() =>
+      _AutoCompleteTextFieldState();
 }
 
 class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
@@ -49,12 +51,12 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
   final _layerLink = LayerLink();
   final _fieldKey = GlobalKey();
   final PlacesService _placesService = PlacesService();
-  bool _isLoading = false;
 
   CancelToken? _cancelToken;
   OverlayEntry? _overlayEntry;
-  List<Prediction> _predictions = [];
-  bool isCrossBtn = true;
+
+  bool _isLoading = false;
+  List<Place> _places = [];
 
   @override
   void initState() {
@@ -65,20 +67,22 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
         .listen(_onSearchChanged);
   }
 
+  // -----------------------------
+  // INPUT HANDLERS
+  // -----------------------------
+
   bool _handleLatLngInput(String query) {
     final cleaned = query.replaceAll(RegExp(r'[()\s]'), '');
     final parts = cleaned.split(',');
 
-    final isLatLng = parts.length == 2 &&
-        double.tryParse(parts[0]) != null &&
-        double.tryParse(parts[1]) != null;
+    if (parts.length != 2) return false;
 
-    if (!isLatLng) return false;
+    final lat = double.tryParse(parts[0]);
+    final lng = double.tryParse(parts[1]);
 
-    final lat = double.parse(parts[0]);
-    final lng = double.parse(parts[1]);
+    if (lat == null || lng == null) return false;
 
-    logHere("📥 Detected manual coordinates: $lat, $lng");
+    logHere("📥 Manual coordinates detected: $lat, $lng");
     widget.onManualLatLngDetected?.call(lat, lng);
     _removeOverlay();
     return true;
@@ -93,21 +97,24 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       final lat = codeArea.center.latitude;
       final lng = codeArea.center.longitude;
 
-      logHere("📥 Decoded Plus Code to: $lat, $lng");
+      logHere("📥 Plus code decoded: $lat, $lng");
       widget.onManualLatLngDetected?.call(lat, lng);
       _removeOverlay();
       return true;
-    } catch (e) {
-      logHere("❌ Not a valid plus code: $e");
+    } catch (_) {
       return false;
     }
   }
+
+  // -----------------------------
+  // PLACES FETCH
+  // -----------------------------
 
   Future<void> _handlePlacePrediction(String query) async {
     _cancelToken?.cancel();
     _cancelToken = CancelToken();
 
-    final result = await _placesService.fetchPredictions(
+    final places = await _placesService.fetchOlaPlaces(
       apiKey: widget.apiKey,
       query: query,
       lat: widget.latitude,
@@ -115,12 +122,12 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       cancelToken: _cancelToken,
     );
 
-    if (result?.status == "ok" && result?.predictions != null) {
-      _predictions = result!.predictions!;
-      logHere('📊 Fetched ${_predictions.length} predictions');
+    if (places.isNotEmpty) {
+      _places = places;
+      logHere('📊 Fetched ${_places.length} places');
       _showOverlay();
     } else {
-      logHere("⚠️ No predictions found or request failed");
+      logHere("⚠️ No places found");
       _removeOverlay();
     }
   }
@@ -140,9 +147,12 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     }
 
     await _handlePlacePrediction(query);
-
     setState(() => _isLoading = false);
   }
+
+  // -----------------------------
+  // OVERLAY
+  // -----------------------------
 
   void _showOverlay() {
     _overlayEntry?.remove();
@@ -153,7 +163,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    _predictions.clear();
+    _places.clear();
   }
 
   OverlayEntry _createOverlayEntry() {
@@ -162,9 +172,8 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       return OverlayEntry(builder: (_) => const SizedBox());
     }
 
-    final renderBox = renderObject;
-    final size = renderBox.size;
-    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderObject.size;
+    final offset = renderObject.localToGlobal(Offset.zero);
 
     return OverlayEntry(
       builder: (_) => Positioned(
@@ -180,32 +189,25 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
             child: ListView.separated(
               shrinkWrap: true,
               padding: EdgeInsets.zero,
-              itemCount: _predictions.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemCount: _places.length,
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1),
               itemBuilder: (context, index) {
-                final prediction = _predictions[index];
-                final displayText =
-                    prediction.description ?? labelUnknownLocation;
+                final place = _places[index];
 
                 return InkWell(
                   onTap: () {
-                    logHere('✅ Selected: $displayText');
-                    widget.controller.text = displayText;
-                    widget.onItemTap?.call(prediction);
-
-                    final location = prediction.geometry?.location;
-                    if (location != null) {
-                      widget.getPredictionWithLatLng?.call(location);
-                    } else {
-                      logHere(
-                          '⚠️ Location is null for prediction: $displayText');
-                    }
-
+                    logHere('✅ Selected: ${place.name}');
+                    widget.controller.text = place.name;
+                    widget.onPlaceSelected?.call(place);
                     _removeOverlay();
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(12),
-                    child: Text(displayText, style: widget.textStyle),
+                    child: Text(
+                      place.name,
+                      style: widget.textStyle,
+                    ),
                   ),
                 );
               },
@@ -216,15 +218,14 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     );
   }
 
+  // -----------------------------
+  // LIFECYCLE
+  // -----------------------------
+
   void clearData() {
     widget.controller.clear();
-    isCrossBtn = false;
     _removeOverlay();
     setState(() {});
-  }
-
-  bool _showCrossIconWidget() {
-    return widget.controller.text.isNotEmpty;
   }
 
   @override
@@ -235,44 +236,37 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     super.dispose();
   }
 
+  // -----------------------------
+  // UI
+  // -----------------------------
+
   @override
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              key: _fieldKey,
-              controller: widget.controller,
-              decoration: widget.decoration.copyWith(
-                suffixIcon: widget.isCrossBtnShown && _showCrossIconWidget()
-                    ? (_isLoading
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: clearData,
-                          ))
-                    : null,
-              ),
-              style: widget.textStyle,
-              onChanged: (string) {
-                _subject.add(string);
-                if (widget.isCrossBtnShown) {
-                  isCrossBtn = string.isNotEmpty;
-                  setState(() {});
-                }
-              },
-            ),
-          ),
-        ],
+      child: TextField(
+        key: _fieldKey,
+        controller: widget.controller,
+        decoration: widget.decoration.copyWith(
+          suffixIcon: widget.isCrossBtnShown &&
+                  widget.controller.text.isNotEmpty
+              ? (_isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: clearData,
+                    ))
+              : null,
+        ),
+        style: widget.textStyle,
+        onChanged: _subject.add,
       ),
     );
   }

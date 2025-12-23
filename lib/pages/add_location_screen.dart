@@ -187,16 +187,16 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: s16, vertical: s12),
         ),
-        onItemTap: (prediction) async {
-          final location = prediction.geometry?.location;
-          if (location != null) {
-            final latLng =
-                LatLng(location.lat!.toDouble(), location.lng!.toDouble());
-            final name = prediction.description ?? "Unnamed location";
-            _searchController.text = name;
-            await _updateLocation(name, latLng);
-          }
-        },
+        // onItemTap: (prediction) async {
+        //   final location = prediction.geometry?.location;
+        //   if (location != null) {
+        //     final latLng =
+        //         LatLng(location.lat!.toDouble(), location.lng!.toDouble());
+        //     final name = prediction.description ?? "Unnamed location";
+        //     _searchController.text = name;
+        //     await _updateLocation(name, latLng);
+        //   }
+        // },
         onManualLatLngDetected: (lat, lng) async {
           final name = await _reverseGeocode(lat, lng);
           _searchController.text = name;
