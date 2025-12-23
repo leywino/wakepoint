@@ -1,3 +1,4 @@
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -41,7 +42,7 @@ android {
 
     defaultConfig {
         applicationId = "com.leywin.wakepoint"
-        minSdk = 21
+        minSdkVersion = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
