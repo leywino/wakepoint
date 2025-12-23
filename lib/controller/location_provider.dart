@@ -137,7 +137,9 @@ class LocationProvider with ChangeNotifier {
     _locationService.stopListening();
     _notificationsPlugin.cancel(1);
     _notificationsPlugin.cancel(0);
-    FlutterBackground.disableBackgroundExecution();
+    if (FlutterBackground.isBackgroundExecutionEnabled) {
+      FlutterBackground.disableBackgroundExecution();
+    }
     _alarmTriggered = false;
     _isTracking = false;
     _isInitializingTracking = false;
