@@ -24,6 +24,7 @@ jobs:
       - name: 📝 Create .env file
         run: |
           echo "OLA_MAPS_API_KEY=${{ secrets.OLA_MAPS_API_KEY }}" > .env
+          echo "GOOGLE_PLACES_API_KEY=${{ secrets.GOOGLE_PLACES_API_KEY }}" > .env
       
       - name: ➕ Append Google Maps API key to local.properties
         run: |
