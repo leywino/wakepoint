@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:open_location_code/open_location_code.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:wakepoint/controller/google_search_provider.dart';
+import 'package:wakepoint/controller/place_search_provider.dart';
 
 import 'package:wakepoint/models/place.dart';
 import 'package:wakepoint/services/places_service.dart';
@@ -15,6 +17,7 @@ class AutoCompleteTextField extends StatefulWidget {
   final String apiKey;
   final InputDecoration decoration;
   final TextStyle textStyle;
+  final PlacesSearchProvider searchProvider;
 
   /// Called when a place is selected
   final void Function(Place place)? onPlaceSelected;
@@ -31,6 +34,7 @@ class AutoCompleteTextField extends StatefulWidget {
     super.key,
     required this.controller,
     required this.apiKey,
+    required this.searchProvider,
     this.decoration = const InputDecoration(),
     this.textStyle = const TextStyle(),
     this.onPlaceSelected,
@@ -50,7 +54,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
   final _subject = PublishSubject<String>();
   final _layerLink = LayerLink();
   final _fieldKey = GlobalKey();
-  final PlacesService _placesService = PlacesService();
+  // final PlacesService _placesService = PlacesService();
 
   CancelToken? _cancelToken;
   OverlayEntry? _overlayEntry;
@@ -82,7 +86,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
 
     if (lat == null || lng == null) return false;
 
-    logHere("📥 Manual coordinates detected: $lat, $lng");
+    logHere("Manual coordinates detected: $lat, $lng");
     widget.onManualLatLngDetected?.call(lat, lng);
     _removeOverlay();
     return true;
@@ -97,7 +101,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       final lat = codeArea.center.latitude;
       final lng = codeArea.center.longitude;
 
-      logHere("📥 Plus code decoded: $lat, $lng");
+      logHere("Plus code decoded: $lat, $lng");
       widget.onManualLatLngDetected?.call(lat, lng);
       _removeOverlay();
       return true;
@@ -114,7 +118,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     _cancelToken?.cancel();
     _cancelToken = CancelToken();
 
-    final places = await _placesService.fetchOlaPlaces(
+    final places = await widget.searchProvider.search(
       apiKey: widget.apiKey,
       query: query,
       lat: widget.latitude,
@@ -124,10 +128,10 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
 
     if (places.isNotEmpty) {
       _places = places;
-      logHere('📊 Fetched ${_places.length} places');
+      logHere('Fetched ${_places.length} places');
       _showOverlay();
     } else {
-      logHere("⚠️ No places found");
+      logHere("No places found");
       _removeOverlay();
     }
   }

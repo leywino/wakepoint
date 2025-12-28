@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:wakepoint/config/constants.dart';
+import 'package:wakepoint/models/place.dart';
+import 'package:wakepoint/models/predictions_google/google_place_adapter.dart';
+import 'package:wakepoint/models/predictions_google/google_places_response.dart';
 import 'package:wakepoint/models/predictions_ola/ola_places.dart';
 import 'package:wakepoint/models/predictions_ola/predictions.dart';
 import 'package:wakepoint/utils/utils.dart';
@@ -55,46 +58,43 @@ class PlacesService {
 
     if (predictions?.predictions == null) return [];
 
-    return predictions!.predictions!
-        .map(OlaPlace.fromPrediction)
-        .toList();
+    return predictions!.predictions!.map(OlaPlace.fromPrediction).toList();
   }
 
-  Future<List<Place>> fetchGooglePlaces({
-  required String apiKey,
-  required String query,
-  double? lat,
-  double? lng,
-  CancelToken? cancelToken,
-}) async {
-  final response = await _dio.post(
-    googlePlacesSearchEndpoint,
-    options: Options(
-      headers: {
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask':
-            'places.displayName,places.formattedAddress,places.location,places.rating',
-      },
-    ),
-    data: {
-      'textQuery': query,
-      if (lat != null && lng != null)
-        'locationBias': {
-          'circle': {
-            'center': {'latitude': lat, 'longitude': lng},
-            'radius': 5000,
+  Future<List<GooglePlace>> fetchGooglePlaces({
+    required String apiKey,
+    required String query,
+    double? lat,
+    double? lng,
+    CancelToken? cancelToken,
+  }) async {
+    log(apiKey);
+    final response = await _dio.post(
+      googlePlacesSearchEndpoint,
+      options: Options(
+        headers: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask':
+              'places.displayName,places.formattedAddress,places.location,places.rating',
+        },
+      ),
+      data: {
+        'textQuery': query,
+        if (lat != null && lng != null)
+          'locationBias': {
+            'circle': {
+              'center': {'latitude': lat, 'longitude': lng},
+              'radius': 5000,
+            }
           }
-        }
-    },
-    cancelToken: cancelToken,
-  );
+      },
+      cancelToken: cancelToken,
+    );
 
-  final parsed = GooglePlacesResponse.fromJson(response.data);
+    log(response.toString());
 
-  return parsed.places
-          ?.map((dto) => GooglePlace(dto))
-          .toList() ??
-      [];
-}
+    final parsed = GooglePlacesResponse.fromJson(response.data);
 
+    return parsed.places?.map((dto) => GooglePlace(dto)).toList() ?? [];
+  }
 }

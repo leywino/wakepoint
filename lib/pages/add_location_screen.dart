@@ -5,9 +5,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:wakepoint/config/constants.dart';
+import 'package:wakepoint/controller/google_search_provider.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:wakepoint/models/place.dart';
 import 'package:wakepoint/widgets/auto_complete_textfield.dart';
 import 'package:wakepoint/utils/utils.dart';
 import 'package:wakepoint/widgets/map_widget.dart';
@@ -72,7 +74,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       longitude: _selectedLatLng!.longitude,
       isEnabled: widget.locationToEdit?.isEnabled ?? true,
       radius: _radius,
-      createdAt: _originalCreatedAt,
+      createdAt: DateTime.now(),
     );
 
     if (widget.locationToEdit != null) {
@@ -91,7 +93,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   _init() {
     if (widget.locationToEdit != null) {
       _selectedLocationName = widget.locationToEdit!.name;
-      _searchController.text = _selectedLocationName!;
+      // _searchController.text = _selectedLocationName!;
       _selectedLatLng = LatLng(
           widget.locationToEdit!.latitude, widget.locationToEdit!.longitude);
       _radius = widget.locationToEdit!.radius;
@@ -103,7 +105,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
           .then((name) {
         setState(() {
           _selectedLocationName = name;
-          _searchController.text = name;
+          // _searchController.text = name;
         });
       });
     }
@@ -173,7 +175,8 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       decoration: BoxDecoration(border: Border(bottom: borderSide)),
       child: AutoCompleteTextField(
         controller: _searchController,
-        apiKey: dotenv.env['OLA_MAPS_API_KEY']!,
+        apiKey: dotenv.env['GOOGLE_PLACES_API_KEY']!,
+        searchProvider: GoogleSearchProvider(),
         debounceTime: 800,
         latitude: widget.initialPosition.latitude,
         longitude: widget.initialPosition.longitude,
@@ -187,16 +190,13 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: s16, vertical: s12),
         ),
-        // onItemTap: (prediction) async {
-        //   final location = prediction.geometry?.location;
-        //   if (location != null) {
-        //     final latLng =
-        //         LatLng(location.lat!.toDouble(), location.lng!.toDouble());
-        //     final name = prediction.description ?? "Unnamed location";
-        //     _searchController.text = name;
-        //     await _updateLocation(name, latLng);
-        //   }
-        // },
+        onPlaceSelected: (Place place) async {
+          final latLng =
+              LatLng(place.latitude.toDouble(), place.longitude.toDouble());
+          final name = place.name;
+          _searchController.text = name;
+          await _updateLocation(name, latLng);
+        },
         onManualLatLngDetected: (lat, lng) async {
           final name = await _reverseGeocode(lat, lng);
           _searchController.text = name;

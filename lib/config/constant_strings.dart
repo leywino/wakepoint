@@ -188,3 +188,5 @@ const String btnOpenSettings = "Open Settings";
 // ─────────────────────────────────────────────
 const String baseUrlOla = "https://api.olamaps.io";
 const String endpointAutocomplete = "$baseUrlOla/places/v1/autocomplete";
+const String baseUrlGoogle = "https://places.googleapis.com";
+const String googlePlacesSearchEndpoint = "$baseUrlGoogle/v1/places:searchText";
