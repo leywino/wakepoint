@@ -152,12 +152,12 @@ class LocationProvider with ChangeNotifier {
 
     final target = _locations[_selectedLocationIndex!];
 
-    _locationService
-        .getCurrentPosition(
-      desiredAccuracy:
-          locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
-    )
-        .then((position) {
+    try {
+      final position = await _locationService.getCurrentPosition(
+        desiredAccuracy:
+            locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
+      );
+
       final distance = _locationService.calculateDistance(
         position.latitude,
         position.longitude,
@@ -186,16 +186,17 @@ class LocationProvider with ChangeNotifier {
           notifyListeners();
         },
       );
+      
       return true;
-    }).catchError((e) {
+
+    } catch (e) {
       logHere('$kLogInitialPositionFailed $e');
       Fluttertoast.showToast(msg: msgUnableToFetch);
       _isInitializingTracking = false;
       _isTracking = false;
       notifyListeners();
       return false;
-    });
-    return false;
+    }
   }
 
   void setAlarmCallback(VoidCallback callback) {
