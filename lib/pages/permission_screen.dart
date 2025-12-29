@@ -19,6 +19,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
   bool _notificationGranted = false;
   bool _batteryGranted = false;
   bool _overlayGranted = false;
+  bool _activityGranted = false;
 
   @override
   void initState() {
@@ -33,7 +34,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     _notificationGranted = await Permission.notification.isGranted;
     _batteryGranted = await Permission.ignoreBatteryOptimizations.isGranted;
     _overlayGranted = await Permission.systemAlertWindow.isGranted;
-
+    _activityGranted = await Permission.activityRecognition.isGranted;
     setState(() {});
   }
 
@@ -99,6 +100,15 @@ class _PermissionScreenState extends State<PermissionScreen> {
       });
     } else if (status.isPermanentlyDenied) {
       _openAppSettingsDialog(permOverlay);
+    }
+  }
+
+  Future<void> _requestActivityPermission() async {
+    final status = await Permission.activityRecognition.request();
+    if (status.isGranted) {
+      setState(() => _activityGranted = true);
+    } else if (status.isPermanentlyDenied) {
+      _openAppSettingsDialog("Activity Recognition");
     }
   }
 
@@ -177,6 +187,12 @@ class _PermissionScreenState extends State<PermissionScreen> {
                           msgNotificationRequired,
                           _notificationGranted,
                           _requestNotificationPermission,
+                        ),
+                        _buildFlatPermissionTile(
+                          permActivity,
+                          msgActivityRequired,
+                          _activityGranted,
+                          _requestActivityPermission,
                         ),
                       ],
                     ),

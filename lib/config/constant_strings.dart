@@ -56,6 +56,7 @@ const String permLocation = "Location Permission";
 const String permNotification = "Notification Permission";
 const String permBattery = "Battery Optimization";
 const String permOverlay = "Overlay Permission";
+const String permActivity = "Activity Recognition";
 String msgPermissionExplanation(String name) =>
     "To enable $name, please open settings and grant the required permission.";
 
@@ -70,6 +71,8 @@ const String msgLocationRequired =
     "To track your location, please grant the Location Permission.";
 const String msgNotificationRequired =
     "For alerts and notifications, please grant the Notification Permission.";
+const String msgActivityRequired =
+    "Reduces battery usage by pausing GPS when you stop moving.";
 const String labelOptional = "Optional but Recommended";
 const String msgBatteryRecommended =
     "Background Battery Usage to prevent app interruptions.";
