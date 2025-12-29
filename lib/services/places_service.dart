@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:wakepoint/config/constants.dart';
-import 'package:wakepoint/models/place.dart';
 import 'package:wakepoint/models/predictions_google/google_place_adapter.dart';
 import 'package:wakepoint/models/predictions_google/google_places_response.dart';
 import 'package:wakepoint/models/predictions_ola/ola_places.dart';

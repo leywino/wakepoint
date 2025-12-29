@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:open_location_code/open_location_code.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:wakepoint/controller/google_search_provider.dart';
 import 'package:wakepoint/controller/place_search_provider.dart';
 
 import 'package:wakepoint/models/place.dart';
-import 'package:wakepoint/services/places_service.dart';
 import 'package:wakepoint/utils/utils.dart';
 
 const String _logTag = "AutoCompleteTextField";

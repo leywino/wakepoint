@@ -143,9 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildThemeOption(
       SettingsProvider settingsProvider, AppTheme value, String label) {
-    return RadioListTile<AppTheme>(
-      title: Text(label),
-      value: value,
+    return RadioGroup<AppTheme>(
       groupValue: settingsProvider.theme,
       onChanged: (newTheme) {
         if (newTheme != null) {
@@ -153,6 +151,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Navigator.pop(context);
         }
       },
+      child: RadioListTile<AppTheme>(
+        title: Text(label),
+        value: value,
+      ),
     );
   }
 
@@ -241,7 +243,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               border: UnderlineInputBorder(),
             ),
-            value: settingsProvider.alarmPlaybackDurationSeconds,
+            initialValue: settingsProvider.alarmPlaybackDurationSeconds,
             items: const [
               DropdownMenuItem(
                   value: alarmDurationDismissed,

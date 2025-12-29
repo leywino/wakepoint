@@ -352,14 +352,16 @@ class _HomeScreenState extends State<HomeScreen> {
         "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}$distanceText",
         style: const TextStyle(fontFamily: kDefaultFont, fontSize: s14),
       ),
-      trailing: Radio<int>(
-        value: index,
+      trailing: RadioGroup<int>(
+        onChanged: (value) {
+          if (!locationProvider.isTracking) {
+            locationProvider.setSelectedLocation(value!);
+          }
+        },
         groupValue: locationProvider.selectedLocationIndex,
-        onChanged: locationProvider.isTracking
-            ? null // disables interaction
-            : (value) {
-                locationProvider.setSelectedLocation(value!);
-              },
+        child: Radio<int>(
+          value: index,
+        ),
       ),
     );
   }
