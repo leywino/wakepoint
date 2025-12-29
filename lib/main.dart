@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geolocator/geolocator.dart'; // Import this
+import 'package:permission_handler/permission_handler.dart'; // Import this
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/controller/location_provider.dart';
@@ -12,52 +14,70 @@ import 'package:wakepoint/services/location_service.dart';
 void main() async {
   await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
-  FlutterDisplayMode.setHighRefreshRate();
+  await FlutterDisplayMode.setHighRefreshRate(); // Await this for smoother start
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  /// Loads SharedPreferences asynchronously
-  Future<Map<String, dynamic>> _loadPreferences() async {
+  /// Loads Prefs AND Checks Permissions
+  Future<Map<String, dynamic>> _initApp() async {
+    // 1. Load Preferences
     final prefs = await SharedPreferences.getInstance();
-    final firstLaunchCompleted =
-        prefs.getBool("first_launch_completed") ?? false;
+
+    // 2. Check Permissions Directly
+    // Location
+    final locStatus = await Geolocator.checkPermission();
+    final hasLocation = locStatus == LocationPermission.always || 
+                        locStatus == LocationPermission.whileInUse;
+    
+    // Notification
+    final hasNotification = await Permission.notification.isGranted;
+    
+    // Activity (Since you added it as mandatory)
+    final hasActivity = await Permission.activityRecognition.isGranted;
+
+    final allGranted = hasLocation && hasNotification && hasActivity;
+
     return {
       "prefs": prefs,
-      "firstLaunchCompleted": firstLaunchCompleted,
+      "isAuthorized": allGranted,
     };
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _loadPreferences(), // Load SharedPreferences in the background
+      future: _initApp(),
       builder: (context, snapshot) {
+        // Show splash/loading while checking
         if (!snapshot.hasData) {
           return const MaterialApp(
             home: Scaffold(
-              body: Center(
-                  child:
-                      CircularProgressIndicator()),
+              body: Center(child: CircularProgressIndicator()),
             ),
           );
         }
 
         final prefs = snapshot.data!["prefs"] as SharedPreferences;
-        final firstLaunchCompleted =
-            snapshot.data!["firstLaunchCompleted"] as bool;
+        final isAuthorized = snapshot.data!["isAuthorized"] as bool;
 
         return MultiProvider(
           providers: [
             ChangeNotifierProvider(
-                create: (context) => LocationProvider(
-                    SettingsProvider(prefs), LocationService())),
-            ChangeNotifierProvider(
                 create: (context) => SettingsProvider(prefs)),
+            // Note: LocationProvider depends on SettingsProvider, 
+            // so often it's better to use ProxyProvider, but if your 
+            // current setup works, keep it.
+            ChangeNotifierProxyProvider<SettingsProvider, LocationProvider>(
+              create: (ctx) => LocationProvider(
+                  Provider.of<SettingsProvider>(ctx, listen: false), 
+                  LocationService()),
+              update: (ctx, settings, prev) => LocationProvider(settings, LocationService()),
+            ),
           ],
-          child: MainApp(firstLaunchCompleted: firstLaunchCompleted),
+          child: MainApp(isAuthorized: isAuthorized),
         );
       },
     );
@@ -65,9 +85,9 @@ class MyApp extends StatelessWidget {
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key, required this.firstLaunchCompleted});
+  const MainApp({super.key, required this.isAuthorized});
 
-  final bool firstLaunchCompleted;
+  final bool isAuthorized;
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +98,10 @@ class MainApp extends StatelessWidget {
           themeMode: ThemeMode.values[settingsProvider.theme.index],
           darkTheme: ThemeData.dark(useMaterial3: true),
           theme: ThemeData.light(useMaterial3: true),
-          home: firstLaunchCompleted
-              ? const HomeScreen()
-              : const PermissionScreen(),
+          // LOGIC CHANGED HERE:
+          // If authorized -> Home
+          // If NOT authorized -> PermissionScreen
+          home: isAuthorized ? const HomeScreen() : const PermissionScreen(),
         );
       },
     );
