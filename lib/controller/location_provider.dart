@@ -31,6 +31,8 @@ class LocationProvider with ChangeNotifier {
   VoidCallback? onAlarmTriggered;
   StreamSubscription<Activity>? _activitySubscription;
   bool _isGpsActive = false;
+  Timer? _adaptiveTimer;
+  static const double kAdaptiveThreshold = 10000;
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -60,6 +62,44 @@ class LocationProvider with ChangeNotifier {
     );
   }
 
+  Future<void> _decideTrackingMode() async {
+    if (_selectedLocationIndex == null || !_isTracking) return;
+
+    final position = await _locationService.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.medium,
+    );
+
+    final target = _locations[_selectedLocationIndex!];
+    final distance = _locationService.calculateDistance(
+      position.latitude,
+      position.longitude,
+      target.latitude,
+      target.longitude,
+    );
+
+    logHere("📍 Check: ${distance.toStringAsFixed(0)}m away.");
+
+    if (distance > kAdaptiveThreshold) {
+      if (_isGpsActive) _stopGpsStream();
+
+      int intervalMinutes = (distance / 2000).floor().clamp(2, 30);
+
+      logHere("🌍 Far away (>10km). Sleeping for $intervalMinutes mins.");
+
+      _adaptiveTimer?.cancel();
+      _adaptiveTimer = Timer(Duration(minutes: intervalMinutes), () {
+        _decideTrackingMode();
+      });
+    } else {
+      logHere("🎯 Close (<10km)! Switching to High Precision Stream.");
+      _adaptiveTimer?.cancel();
+
+      if (!_isGpsActive) {
+        _startGpsStream();
+      }
+    }
+  }
+
   Future<void> _initActivityRecognition() async {
     // 1. Check or Request Permission
     bool isGranted = await Permission.activityRecognition.isGranted;
@@ -81,28 +121,30 @@ class LocationProvider with ChangeNotifier {
     logHere("Detected Activity: ${activity.type}");
 
     if (activity.type == ActivityType.STILL) {
-      // Device is STILL -> Pause GPS to save battery
-      if (_isGpsActive) {
-        logHere("💤 Device is STILL. Pausing GPS.");
-        _stopGpsStream();
-      }
+      // STOP EVERYTHING when still
+      logHere("💤 Still. Pausing all location checks.");
+      _stopGpsStream();
+      _adaptiveTimer?.cancel();
     } else {
-      // Device is MOVING (Walking, Vehicle, etc.) -> Turn ON GPS
-      if (!_isGpsActive) {
-        logHere("🚗 Device is MOVING. Activating GPS.");
-        _startGpsStream();
+      // MOVING? Let the brain decide strategy (Stream vs Timer)
+      // Only trigger if we aren't already streaming or waiting on a timer
+      if (!_isGpsActive &&
+          (_adaptiveTimer == null || !_adaptiveTimer!.isActive)) {
+        logHere("🚗 Moving. Calculating best tracking mode...");
+        _decideTrackingMode();
       }
     }
   }
 
   void _startGpsStream() {
     if (_selectedLocationIndex == null || _isGpsActive) return;
-    
+
     final target = _locations[_selectedLocationIndex!];
     _isGpsActive = true;
 
     _locationService.startListening(
-      accuracy: locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
+      accuracy:
+          locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
       distanceFilter: 20,
       onUpdate: (position) {
         _sendRealtimeUpdate(position, target);
@@ -195,20 +237,19 @@ class LocationProvider with ChangeNotifier {
   }
 
   void stopTracking() {
-    // 1. Stop Activity Listener
     _activitySubscription?.cancel();
     _activitySubscription = null;
 
-    // 2. Stop GPS
     _stopGpsStream();
+    _adaptiveTimer?.cancel(); // NEW: Kill the timer
+    _adaptiveTimer = null;
 
-    // 3. Cleanup Notifications & Background Service
     _notificationsPlugin.cancel(1);
     _notificationsPlugin.cancel(0);
     if (FlutterBackground.isBackgroundExecutionEnabled) {
       FlutterBackground.disableBackgroundExecution();
     }
-    
+
     _alarmTriggered = false;
     _isTracking = false;
     _isInitializingTracking = false;
@@ -217,42 +258,18 @@ class LocationProvider with ChangeNotifier {
   }
 
   Future<bool> _startTracking() async {
-    if (_selectedLocationIndex == null || !_isTracking) return false;
-    final target = _locations[_selectedLocationIndex!];
+    if (_selectedLocationIndex == null) return false;
 
     try {
-      // 1. Initial Position Check (Force one-time fetch to ensure we aren't already there)
-      final position = await _locationService.getCurrentPosition(
-        desiredAccuracy: locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
-      );
-
-      final distance = _locationService.calculateDistance(
-        position.latitude, position.longitude,
-        target.latitude, target.longitude,
-      );
-
-      if (distance <= target.radius) {
-        Fluttertoast.showToast(msg: msgAlreadyWithinRadius, toastLength: Toast.LENGTH_SHORT);
-        _isInitializingTracking = false;
-        _isTracking = false;
-        notifyListeners();
-        return false;
-      }
-
-      // 2. Start Smart Tracking (Activity Recognition)
-      // We start GPS immediately as a safety measure, the Activity Listener 
-      // will turn it off in a few seconds if it detects we are 'STILL'.
-      _startGpsStream(); 
+      // 1. Start Activity Recognition
       await _initActivityRecognition();
-      
-      return true;
 
+      // 2. Trigger immediate check to decide strategy
+      await _decideTrackingMode();
+
+      return true;
     } catch (e) {
       logHere('$kLogInitialPositionFailed $e');
-      Fluttertoast.showToast(msg: msgUnableToFetch);
-      _isInitializingTracking = false;
-      _isTracking = false;
-      notifyListeners();
       return false;
     }
   }
