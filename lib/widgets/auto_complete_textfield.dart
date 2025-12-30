@@ -44,8 +44,7 @@ class AutoCompleteTextField extends StatefulWidget {
   });
 
   @override
-  State<AutoCompleteTextField> createState() =>
-      _AutoCompleteTextFieldState();
+  State<AutoCompleteTextField> createState() => _AutoCompleteTextFieldState();
 }
 
 class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
@@ -189,11 +188,11 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
           child: Material(
             elevation: 4,
             child: ListView.separated(
+              physics: BouncingScrollPhysics(),
               shrinkWrap: true,
               padding: EdgeInsets.zero,
               itemCount: _places.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(height: 1),
+              separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final place = _places[index];
 
@@ -250,22 +249,22 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
         key: _fieldKey,
         controller: widget.controller,
         decoration: widget.decoration.copyWith(
-          suffixIcon: widget.isCrossBtnShown &&
-                  widget.controller.text.isNotEmpty
-              ? (_isLoading
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: clearData,
-                    ))
-              : null,
+          suffixIcon:
+              widget.isCrossBtnShown && widget.controller.text.isNotEmpty
+                  ? (_isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: clearData,
+                        ))
+                  : null,
         ),
         style: widget.textStyle,
         onChanged: _subject.add,

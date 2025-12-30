@@ -1,4 +1,4 @@
-library constants;
+library;
 
 export 'constant_assets.dart';
 export 'constant_sizes.dart';

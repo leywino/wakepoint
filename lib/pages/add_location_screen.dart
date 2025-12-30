@@ -66,10 +66,11 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     }
   }
 
-  void _saveLocation() {
+  void _saveLocation(String finalName) {
     final provider = Provider.of<LocationProvider>(context, listen: false);
+    
     final newLocation = LocationModel(
-      name: _selectedLocationName!,
+      name: finalName, // Use the name from the dialog
       latitude: _selectedLatLng!.latitude,
       longitude: _selectedLatLng!.longitude,
       isEnabled: widget.locationToEdit?.isEnabled ?? true,
@@ -78,19 +79,20 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     );
 
     if (widget.locationToEdit != null) {
+      // Note: We use _originalCreatedAt to find the item to edit
       provider.editLocation(_originalCreatedAt!, newLocation);
-      logHere("Location updated: $_selectedLocationName at $_selectedLatLng");
+      logHere("Location updated: $finalName");
       Fluttertoast.showToast(msg: msgLocationUpdated);
     } else {
       provider.addLocation(newLocation);
-      logHere("Location added: $_selectedLocationName at $_selectedLatLng");
+      logHere("Location added: $finalName");
       Fluttertoast.showToast(msg: msgLocationAdded);
     }
 
     Navigator.pop(context);
   }
 
-  _init() {
+  void _init() {
     if (widget.locationToEdit != null) {
       _selectedLocationName = widget.locationToEdit!.name;
       // _searchController.text = _selectedLocationName!;
@@ -207,6 +209,43 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     );
   }
 
+  Future<String?> _showNameDialog() async {
+    final TextEditingController nameController = 
+        TextEditingController(text: _selectedLocationName);
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Name this Location"),
+        content: TextField(
+          controller: nameController,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: "Location Name",
+            hintText: "e.g., Office, Gym, Home",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = nameController.text.trim();
+              if (text.isNotEmpty) {
+                Navigator.pop(context, text);
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSaveButton(BuildContext context) {
     final isEnabled = _selectedLatLng != null && _selectedLocationName != null;
     final theme = Theme.of(context);
@@ -215,7 +254,14 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       padding: const EdgeInsets.all(s8),
       alignment: Alignment.bottomRight,
       child: ElevatedButton.icon(
-        onPressed: isEnabled ? _saveLocation : null,
+        onPressed: isEnabled 
+            ? () async {
+                final customName = await _showNameDialog();
+                if (customName != null) {
+                  _saveLocation(customName);
+                }
+              }
+            : null,
         // icon: const Icon(Icons.save, size: s20),
         label: const Text(
           'Save',

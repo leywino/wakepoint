@@ -1,4 +1,4 @@
-library utils;
+library;
 
 export 'logger.dart';
 export 'unit_converter.dart';

@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-    
+
     actions.add(_buildRenameButton(locationProvider));
     actions.add(_buildDeleteButton(locationProvider));
     return actions;
@@ -284,14 +284,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLocationList(
       LocationProvider locationProvider, SettingsProvider settingsProvider) {
-    return RefreshIndicator(onRefresh: () =>  _fetchInitialPosition(),
+    return RefreshIndicator(
+      onRefresh: () => _fetchInitialPosition(),
       child: ListView.builder(
+        physics: BouncingScrollPhysics(),
         itemCount: locationProvider.locations.length,
         itemBuilder: (context, index) {
           final location = locationProvider.locations[index];
           final isSelected = _selectedItems.contains(index);
           final isActive = locationProvider.selectedLocationIndex == index;
-      
+
           return GestureDetector(
             onLongPress: () {
               if (locationProvider.isTracking) {
@@ -313,8 +315,8 @@ class _HomeScreenState extends State<HomeScreen> {
               color: isSelected
                   ? Theme.of(context).colorScheme.primary.withValues(alpha: s05)
                   : null,
-              child: _buildLocationListItem(
-                  location, isActive, locationProvider, settingsProvider, index),
+              child: _buildLocationListItem(location, isActive,
+                  locationProvider, settingsProvider, index),
             ),
           );
         },
@@ -394,8 +396,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showRenameDialog(LocationModel location, LocationProvider provider) {
-    final TextEditingController controller = TextEditingController(text: location.name);
-    
+    final TextEditingController controller =
+        TextEditingController(text: location.name);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

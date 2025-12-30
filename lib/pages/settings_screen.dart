@@ -53,6 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: DefaultTextStyle(
         style: const TextStyle(fontFamily: kDefaultFont),
         child: ListView(
+          physics: BouncingScrollPhysics(),
           padding: const EdgeInsets.all(s16),
           children: [
             _buildTitle(theme),
@@ -70,8 +71,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionTitle(sectionNotifications, theme),
             _buildNotificationSettings(settingsProvider),
             verticalSpaceMedium,
+           if (!_overlayGranted || !_batteryGranted) ...[
             _buildSectionTitle(sectionPermissions, theme),
             _buildPermissionSettings(settingsProvider),
+            verticalSpaceMedium,
+          ],
           ],
         ),
       ),
@@ -336,37 +340,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildPermissionSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.window),
-          title: const Text(permOverlay),
-          subtitle: const Text(msgOverlayNeededForAlerts),
-          trailing: _overlayGranted
-              ? const Icon(Icons.check_circle, color: Colors.green)
-              : ElevatedButton(
-                  onPressed: () {
-                    _requestOverlayPermission(
-                      () {
-                        settingsProvider.useOverlayAlarmFeature = true;
-                      },
-                    );
+        if (!_overlayGranted)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.window),
+            title: const Text(permOverlay),
+            subtitle: const Text(msgOverlayNeededForAlerts),
+            trailing: ElevatedButton(
+              onPressed: () {
+                _requestOverlayPermission(
+                  () {
+                    settingsProvider.useOverlayAlarmFeature = true;
                   },
-                  child: const Text(btnGrant),
-                ),
-        ),
-        sizedBoxH10,
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.battery_alert),
-          title: const Text(permBattery),
-          subtitle: const Text(msgBatteryNeededForPersistence),
-          trailing: _batteryGranted
-              ? const Icon(Icons.check_circle, color: Colors.green)
-              : ElevatedButton(
-                  onPressed: _requestBatteryPermission,
-                  child: const Text(btnGrant),
-                ),
-        ),
+                );
+              },
+              child: const Text(btnGrant),
+            ),
+          ),
+        if (!_overlayGranted && !_batteryGranted) sizedBoxH10,
+        if (!_batteryGranted)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.battery_alert),
+            title: const Text(permBattery),
+            subtitle: const Text(msgBatteryNeededForPersistence),
+            trailing: ElevatedButton(
+              onPressed: _requestBatteryPermission,
+              child: const Text(btnGrant),
+            ),
+          ),
       ],
     );
   }

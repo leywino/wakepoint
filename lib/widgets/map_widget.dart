@@ -48,7 +48,7 @@ class _MapWidgetState extends State<MapWidget> {
     _debouncer = Debouncer(duration: const Duration(milliseconds: 300));
   }
 
-  _init() {
+  void _init() {
     _radius = widget.radius ?? 150;
     _currentZoom = _calculateZoomLevel(_radius);
   }
