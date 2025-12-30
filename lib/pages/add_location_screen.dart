@@ -14,7 +14,7 @@ import 'package:wakepoint/widgets/auto_complete_textfield.dart';
 import 'package:wakepoint/utils/utils.dart';
 import 'package:wakepoint/widgets/map_widget.dart';
 
-const String _logTag = "AddLocationScreen";
+const String _logTag = 'AddLocationScreen';
 void logHere(String message) => log(message, tag: _logTag);
 
 class AddLocationScreen extends StatefulWidget {
@@ -47,7 +47,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
 
     _mapController?.animateCamera(CameraUpdate.newLatLng(latLng));
     logHere(
-        "Updated location: $name at ${latLng.latitude}, ${latLng.longitude}");
+        'Updated location: $name at ${latLng.latitude}, ${latLng.longitude}');
   }
 
   Future<String> _reverseGeocode(double lat, double lng) async {
@@ -61,7 +61,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
         placemark.country
       ].where((e) => e != null && e.isNotEmpty).join(', ');
     } catch (e) {
-      logHere("Reverse geocoding failed: $e");
+      logHere('Reverse geocoding failed: $e');
       return labelCurrentLocation;
     }
   }
@@ -81,11 +81,11 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     if (widget.locationToEdit != null) {
       // Note: We use _originalCreatedAt to find the item to edit
       provider.editLocation(_originalCreatedAt!, newLocation);
-      logHere("Location updated: $finalName");
+      logHere('Location updated: $finalName');
       Fluttertoast.showToast(msg: msgLocationUpdated);
     } else {
       provider.addLocation(newLocation);
-      logHere("Location added: $finalName");
+      logHere('Location added: $finalName');
       Fluttertoast.showToast(msg: msgLocationAdded);
     }
 
@@ -216,21 +216,21 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Name this Location"),
+        title: const Text(labelNameLocation),
         content: TextField(
           controller: nameController,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
-            labelText: "Location Name",
-            hintText: "e.g., Office, Gym, Home",
+            labelText: labelLocationName,
+            hintText: hintLocationNameExample,
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text(btnCancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -239,7 +239,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
                 Navigator.pop(context, text);
               }
             },
-            child: const Text("Save"),
+            child: const Text(btnSave),
           ),
         ],
       ),

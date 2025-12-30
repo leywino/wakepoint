@@ -68,9 +68,9 @@ class LocationService {
     required double distance,
   }) async {
     if (distance >= 1000) {
-      return "${(distance / 1000).toStringAsFixed(1)} km";
+      return '${(distance / 1000).toStringAsFixed(1)} km';
     } else {
-      return "${distance.toStringAsFixed(0)} m";
+      return '${distance.toStringAsFixed(0)} m';
     }
   }
 }

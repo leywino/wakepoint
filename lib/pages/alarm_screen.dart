@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/services/alarm_service.dart';
@@ -94,7 +95,7 @@ class _AlarmScreenState extends State<AlarmScreen>
               ElevatedButton.icon(
                 onPressed: _stopAlarm,
                 icon: const Icon(Icons.stop),
-                label: const Text('Stop Alarm'),
+                label: const Text(btnStopAlarm),
               ),
             ],
           ),

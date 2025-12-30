@@ -12,7 +12,7 @@ import 'package:wakepoint/pages/permission_screen.dart';
 import 'package:wakepoint/services/location_service.dart';
 
 void main() async {
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: '.env');
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDisplayMode.setHighRefreshRate(); // Await this for smoother start
   runApp(const MyApp());
@@ -41,8 +41,8 @@ class MyApp extends StatelessWidget {
     final allGranted = hasLocation && hasNotification && hasActivity;
 
     return {
-      "prefs": prefs,
-      "isAuthorized": allGranted,
+      'prefs': prefs,
+      'isAuthorized': allGranted,
     };
   }
 
@@ -60,8 +60,8 @@ class MyApp extends StatelessWidget {
           );
         }
 
-        final prefs = snapshot.data!["prefs"] as SharedPreferences;
-        final isAuthorized = snapshot.data!["isAuthorized"] as bool;
+        final prefs = snapshot.data!['prefs'] as SharedPreferences;
+        final isAuthorized = snapshot.data!['isAuthorized'] as bool;
 
         return MultiProvider(
           providers: [

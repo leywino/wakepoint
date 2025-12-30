@@ -108,7 +108,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     if (status.isGranted) {
       setState(() => _activityGranted = true);
     } else if (status.isPermanentlyDenied) {
-      _openAppSettingsDialog("Activity Recognition");
+      _openAppSettingsDialog('Activity Recognition');
     }
   }
 
@@ -118,7 +118,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          "$permissionName Required",
+          '$permissionName Required',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         content: Text(
@@ -145,7 +145,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
   /// Save first launch & navigate to home screen
   Future<void> _completeSetup() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool("first_launch_completed", true);
+    await prefs.setBool('first_launch_completed', true);
     if (mounted) {
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => const HomeScreen()));

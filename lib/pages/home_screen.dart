@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToEditLocationScreen(LocationModel locationToEdit) {
     if (_initialPosition == null) {
       Fluttertoast.showToast(
-          msg: "Please wait, fetching current location first.");
+          msg: 'Please wait, fetching current location first.');
       return;
     }
     Navigator.push(
@@ -106,18 +106,18 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Confirm Deletion"),
+          title: const Text(titleConfirmDeletion),
           content: Text(
-              "Are you sure you want to delete ${_selectedItems.length} selected location(s)?"),
+              msgConfirmDeleteSelected(_selectedItems.length)),
           actions: <Widget>[
             TextButton(
-              child: const Text("Cancel"),
+              child: const Text(btnCancel),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text("Delete"),
+              child: const Text(btnSave),
               onPressed: () {
                 Navigator.of(context).pop();
                 setState(() {
@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                   _selectedItems.clear();
                   _isSelectionMode = false;
-                  Fluttertoast.showToast(msg: "Location(s) deleted");
+                  Fluttertoast.showToast(msg: 'Location(s) deleted');
                 });
               },
             ),
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return IconButton(
       icon: const Icon(Icons.drive_file_rename_outline),
-      tooltip: "Rename",
+      tooltip: btnRename,
       onPressed: () {
         final index = _selectedItems.first;
         _showRenameDialog(provider.locations[index], provider);
@@ -345,12 +345,12 @@ class _HomeScreenState extends State<HomeScreen> {
         location.longitude,
       );
 
-      distanceText = "\n$labelDistance ${UnitConverter.formatDistanceForDisplay(
+      distanceText = '\n$labelDistance ${UnitConverter.formatDistanceForDisplay(
         distanceInMeters,
         settingsProvider.preferredUnitSystem,
-      )}";
+      )}';
     } else {
-      distanceText = "";
+      distanceText = '';
     }
 
     return ListTile(
@@ -369,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       subtitle: Text(
-        "Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}$distanceText",
+        'Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}$distanceText',
         style: const TextStyle(fontFamily: kDefaultFont, fontSize: s14),
       ),
       trailing: RadioGroup<int>(
@@ -402,20 +402,20 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Rename Location"),
+        title: const Text(titleRenameLocation),
         content: TextField(
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
-            labelText: "Location Name",
-            hintText: "e.g., Office, Gym",
+            labelText: labelLocationName,
+            hintText: hintLocationNameExample,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
+            child: const Text(btnCancel),
           ),
           TextButton(
             onPressed: () {
@@ -426,10 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 provider.editLocation(location.createdAt!, updated);
                 Navigator.pop(context);
                 _clearSelection(); // Exit selection mode
-                Fluttertoast.showToast(msg: "Renamed to ${controller.text}");
+                Fluttertoast.showToast(msg: 'Renamed to ${controller.text}');
               }
             },
-            child: const Text("Save"),
+            child: const Text(btnSave),
           ),
         ],
       ),

@@ -7,7 +7,7 @@ import 'package:wakepoint/controller/place_search_provider.dart';
 import 'package:wakepoint/models/place.dart';
 import 'package:wakepoint/utils/utils.dart';
 
-const String _logTag = "AutoCompleteTextField";
+const String _logTag = 'AutoCompleteTextField';
 void logHere(String message) => log(message, tag: _logTag);
 
 class AutoCompleteTextField extends StatefulWidget {
@@ -83,7 +83,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
 
     if (lat == null || lng == null) return false;
 
-    logHere("Manual coordinates detected: $lat, $lng");
+    logHere('Manual coordinates detected: $lat, $lng');
     widget.onManualLatLngDetected?.call(lat, lng);
     _removeOverlay();
     return true;
@@ -98,7 +98,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       final lat = codeArea.center.latitude;
       final lng = codeArea.center.longitude;
 
-      logHere("Plus code decoded: $lat, $lng");
+      logHere('Plus code decoded: $lat, $lng');
       widget.onManualLatLngDetected?.call(lat, lng);
       _removeOverlay();
       return true;
@@ -128,7 +128,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
       logHere('Fetched ${_places.length} places');
       _showOverlay();
     } else {
-      logHere("No places found");
+      logHere('No places found');
       _removeOverlay();
     }
   }

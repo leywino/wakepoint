@@ -55,7 +55,7 @@ class AlarmService {
   Future<void> _playTone(AlarmSoundType alarmSoundType) async {
     const platform = MethodChannel(kMethodChannelTone);
     await platform
-        .invokeMethod('playTone', {"type": alarmSoundType.name.toLowerCase()});
+        .invokeMethod('playTone', {'type': alarmSoundType.name.toLowerCase()});
   }
 
   Future<void> _stopTone() async {

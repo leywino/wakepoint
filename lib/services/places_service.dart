@@ -6,7 +6,7 @@ import 'package:wakepoint/models/predictions_ola/ola_places.dart';
 import 'package:wakepoint/models/predictions_ola/predictions.dart';
 import 'package:wakepoint/utils/utils.dart';
 
-const String _logTag = "PlacesService";
+const String _logTag = 'PlacesService';
 void logHere(String message) => log(message, tag: _logTag);
 
 class PlacesService {
@@ -23,18 +23,18 @@ class PlacesService {
     try {
       String baseUrl = endpointAutocomplete;
       String location =
-          (lat != null && lng != null) ? "&location=$lat%2C$lng" : "";
-      String types = "&types=locality";
+          (lat != null && lng != null) ? '&location=$lat%2C$lng' : '';
+      String types = '&types=locality';
       String url =
-          "$baseUrl?input=${Uri.encodeComponent(query)}$location$types&api_key=$apiKey";
+          '$baseUrl?input=${Uri.encodeComponent(query)}$location$types&api_key=$apiKey';
 
-      logHere("Fetching Ola predictions: $url");
+      logHere('Fetching Ola predictions: $url');
 
       final response = await _dio.get(url, cancelToken: cancelToken);
 
       return Predictions.fromJson(response.data);
     } catch (e) {
-      logHere("Error fetching Ola predictions: $e");
+      logHere('Error fetching Ola predictions: $e');
       return null;
     }
   }

@@ -132,7 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             const Padding(
               padding: EdgeInsets.all(s8),
-              child: Text("Select App Theme", style: TextStyle(fontSize: s18)),
+              child: Text(titleSelectTheme, style: TextStyle(fontSize: s18)),
             ),
             _buildThemeOption(
                 settingsProvider, AppTheme.system, valSystemDefault),

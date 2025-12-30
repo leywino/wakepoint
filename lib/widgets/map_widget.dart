@@ -6,7 +6,7 @@ import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/utils/utils.dart';
 
-const String _logTag = "MapWidget";
+const String _logTag = 'MapWidget';
 void logHere(String message) => log(message, tag: _logTag);
 
 class MapWidget extends StatefulWidget {
@@ -179,7 +179,7 @@ class _MapWidgetState extends State<MapWidget> {
                 });
 
                 _debouncer.run(() {
-                  logHere("Radius changed (debounced): $snapped");
+                  logHere('Radius changed (debounced): $snapped');
                   setState(() {
                     _radius = snapped.toDouble();
                     _currentZoom = _calculateZoomLevel(_radius);

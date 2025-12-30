@@ -39,7 +39,7 @@ class SettingsProvider with ChangeNotifier {
   }
 
   bool get enableAlarmVibration {
-    return _prefs?.getBool("enable_alarm_vibration") ?? true;
+    return _prefs?.getBool('enable_alarm_vibration') ?? true;
   }
 
   set enableAlarmVibration(bool enable) {
@@ -48,7 +48,7 @@ class SettingsProvider with ChangeNotifier {
   }
 
   bool get enablePersistentNotification {
-    return _prefs?.getBool("enable_persistent_notification") ?? true;
+    return _prefs?.getBool('enable_persistent_notification') ?? true;
   }
 
   set enablePersistentNotification(bool enable) {
@@ -57,7 +57,7 @@ class SettingsProvider with ChangeNotifier {
   }
 
   bool get useOverlayAlarmFeature {
-    return _prefs?.getBool("use_overlay_alarm_feature") ?? false;
+    return _prefs?.getBool('use_overlay_alarm_feature') ?? false;
   }
 
   set useOverlayAlarmFeature(bool enable) {

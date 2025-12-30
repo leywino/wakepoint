@@ -16,7 +16,7 @@ import 'package:wakepoint/models/location_model.dart';
 import 'package:wakepoint/services/location_service.dart';
 import 'package:wakepoint/utils/utils.dart';
 
-const String _logTag = "LocationProvider";
+const String _logTag = 'LocationProvider';
 void logHere(String message) => log(message, tag: _logTag);
 
 class LocationProvider with ChangeNotifier {
@@ -77,21 +77,21 @@ class LocationProvider with ChangeNotifier {
       target.longitude,
     );
 
-    logHere("📍 Check: ${distance.toStringAsFixed(0)}m away.");
+    logHere('📍 Check: ${distance.toStringAsFixed(0)}m away.');
 
     if (distance > kAdaptiveThreshold) {
       if (_isGpsActive) _stopGpsStream();
 
       int intervalMinutes = (distance / 2000).floor().clamp(2, 30);
 
-      logHere("🌍 Far away (>10km). Sleeping for $intervalMinutes mins.");
+      logHere('🌍 Far away (>10km). Sleeping for $intervalMinutes mins.');
 
       _adaptiveTimer?.cancel();
       _adaptiveTimer = Timer(Duration(minutes: intervalMinutes), () {
         _decideTrackingMode();
       });
     } else {
-      logHere("🎯 Close (<10km)! Switching to High Precision Stream.");
+      logHere('🎯 Close (<10km)! Switching to High Precision Stream.');
       _adaptiveTimer?.cancel();
 
       if (!_isGpsActive) {
@@ -108,21 +108,21 @@ class LocationProvider with ChangeNotifier {
     }
 
     if (isGranted) {
-      logHere("🏃 Activity Permission Granted. Listening for movement...");
+      logHere('🏃 Activity Permission Granted. Listening for movement...');
       _activitySubscription = FlutterActivityRecognition.instance.activityStream
           .listen(_handleActivityChange);
     } else {
-      logHere("⚠️ Activity Permission Denied. Defaulting to Always-On GPS.");
+      logHere('⚠️ Activity Permission Denied. Defaulting to Always-On GPS.');
       _startGpsStream(); // Fallback: Run GPS continuously
     }
   }
 
   void _handleActivityChange(Activity activity) {
-    logHere("Detected Activity: ${activity.type}");
+    logHere('Detected Activity: ${activity.type}');
 
     if (activity.type == ActivityType.STILL) {
       // STOP EVERYTHING when still
-      logHere("💤 Still. Pausing all location checks.");
+      logHere('💤 Still. Pausing all location checks.');
       _stopGpsStream();
       _adaptiveTimer?.cancel();
     } else {
@@ -130,7 +130,7 @@ class LocationProvider with ChangeNotifier {
       // Only trigger if we aren't already streaming or waiting on a timer
       if (!_isGpsActive &&
           (_adaptiveTimer == null || !_adaptiveTimer!.isActive)) {
-        logHere("🚗 Moving. Calculating best tracking mode...");
+        logHere('🚗 Moving. Calculating best tracking mode...');
         _decideTrackingMode();
       }
     }
@@ -230,7 +230,7 @@ class LocationProvider with ChangeNotifier {
         notificationImportance: AndroidNotificationImportance.normal,
         enableWifiLock: true,
         notificationIcon:
-            AndroidResource(name: "ic_stat_notification", defType: 'drawable'));
+            AndroidResource(name: 'ic_stat_notification', defType: 'drawable'));
     if (await FlutterBackground.initialize(androidConfig: config)) {
       FlutterBackground.enableBackgroundExecution();
     }
