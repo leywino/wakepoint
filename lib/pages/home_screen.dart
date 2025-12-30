@@ -136,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _fetchInitialPosition() async {
+  Future<void> _fetchInitialPosition() async {
     Fluttertoast.showToast(
       msg: msgFetchingLocation,
       toastLength: Toast.LENGTH_SHORT,
@@ -209,8 +209,23 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
+    
+    actions.add(_buildRenameButton(locationProvider));
     actions.add(_buildDeleteButton(locationProvider));
     return actions;
+  }
+
+  Widget _buildRenameButton(LocationProvider provider) {
+    if (_selectedItems.length != 1) return const SizedBox.shrink();
+
+    return IconButton(
+      icon: const Icon(Icons.drive_file_rename_outline),
+      tooltip: "Rename",
+      onPressed: () {
+        final index = _selectedItems.first;
+        _showRenameDialog(provider.locations[index], provider);
+      },
+    );
   }
 
   Widget _buildDeleteButton(LocationProvider locationProvider) {
@@ -269,39 +284,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildLocationList(
       LocationProvider locationProvider, SettingsProvider settingsProvider) {
-    return ListView.builder(
-      itemCount: locationProvider.locations.length,
-      itemBuilder: (context, index) {
-        final location = locationProvider.locations[index];
-        final isSelected = _selectedItems.contains(index);
-        final isActive = locationProvider.selectedLocationIndex == index;
-
-        return GestureDetector(
-          onLongPress: () {
-            if (locationProvider.isTracking) {
-              Fluttertoast.showToast(msg: msgStopTrackingFirst);
-              return;
-            }
-            _toggleSelectionMode(index);
-          },
-          onTap: () {
-            if (locationProvider.isTracking) return;
-            if (_isSelectionMode) {
+    return RefreshIndicator(onRefresh: () =>  _fetchInitialPosition(),
+      child: ListView.builder(
+        itemCount: locationProvider.locations.length,
+        itemBuilder: (context, index) {
+          final location = locationProvider.locations[index];
+          final isSelected = _selectedItems.contains(index);
+          final isActive = locationProvider.selectedLocationIndex == index;
+      
+          return GestureDetector(
+            onLongPress: () {
+              if (locationProvider.isTracking) {
+                Fluttertoast.showToast(msg: msgStopTrackingFirst);
+                return;
+              }
               _toggleSelectionMode(index);
-            } else {
-              locationProvider.setSelectedLocation(index);
-            }
-          },
-          child: Card(
-            elevation: s2,
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary.withValues(alpha: s05)
-                : null,
-            child: _buildLocationListItem(
-                location, isActive, locationProvider, settingsProvider, index),
-          ),
-        );
-      },
+            },
+            onTap: () {
+              if (locationProvider.isTracking) return;
+              if (_isSelectionMode) {
+                _toggleSelectionMode(index);
+              } else {
+                locationProvider.setSelectedLocation(index);
+              }
+            },
+            child: Card(
+              elevation: s2,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: s05)
+                  : null,
+              child: _buildLocationListItem(
+                  location, isActive, locationProvider, settingsProvider, index),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -373,6 +390,46 @@ class _HomeScreenState extends State<HomeScreen> {
       child: _initialPosition != null
           ? const Icon(Icons.add_location_alt, size: s28)
           : const CircularProgressIndicator(),
+    );
+  }
+
+  void _showRenameDialog(LocationModel location, LocationProvider provider) {
+    final TextEditingController controller = TextEditingController(text: location.name);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Rename Location"),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: "Location Name",
+            hintText: "e.g., Office, Gym",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                // Create copy with new name
+                final updated = location.copyWith(name: controller.text.trim());
+                // Update via provider
+                provider.editLocation(location.createdAt!, updated);
+                Navigator.pop(context);
+                _clearSelection(); // Exit selection mode
+                Fluttertoast.showToast(msg: "Renamed to ${controller.text}");
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
     );
   }
 }
