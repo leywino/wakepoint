@@ -6,6 +6,7 @@ final Map<String, bool> kFeatureLogs = {
   'LocationProvider': true,
   'PlacesService': true,
   'MapWidget': true,
+  'General' : true,
 };
 
 void log(String message, {String tag = 'General'}) {
