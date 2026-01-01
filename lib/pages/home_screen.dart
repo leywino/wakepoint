@@ -107,8 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text(titleConfirmDeletion),
-          content: Text(
-              msgConfirmDeleteSelected(_selectedItems.length)),
+          content: Text(msgConfirmDeleteSelected(_selectedItems.length)),
           actions: <Widget>[
             TextButton(
               child: const Text(btnCancel),
@@ -287,7 +286,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return RefreshIndicator(
       onRefresh: () => _fetchInitialPosition(),
       child: ListView.builder(
-        physics: BouncingScrollPhysics(),
         itemCount: locationProvider.locations.length,
         itemBuilder: (context, index) {
           final location = locationProvider.locations[index];
@@ -338,15 +336,18 @@ class _HomeScreenState extends State<HomeScreen> {
         : _initialPosition;
 
     if (currentPos != null) {
-      double distanceInMeters = LocationService().calculateDistance(
+      double rawDistance = LocationService().calculateDistance(
         currentPos.latitude,
         currentPos.longitude,
         location.latitude,
         location.longitude,
       );
 
+      double distanceToEdge = rawDistance - location.radius;
+      if (distanceToEdge < 0) distanceToEdge = 0;
+
       distanceText = '\n$labelDistance ${UnitConverter.formatDistanceForDisplay(
-        distanceInMeters,
+        distanceToEdge, // <--- Use the adjusted distance
         settingsProvider.preferredUnitSystem,
       )}';
     } else {

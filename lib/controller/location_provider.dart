@@ -77,21 +77,37 @@ class LocationProvider with ChangeNotifier {
       target.longitude,
     );
 
-    logHere('📍 Check: ${distance.toStringAsFixed(0)}m away.');
+    logHere(
+        '📍 Check: ${(distance / 1000).toStringAsFixed(1)}km away. Speed: ${position.speed.toStringAsFixed(1)} m/s');
 
     if (distance > kAdaptiveThreshold) {
       if (_isGpsActive) _stopGpsStream();
 
-      int intervalMinutes = (distance / 2000).floor().clamp(2, 30);
+      final double effectiveSpeed =
+          (position.speed > 1.5) ? position.speed : 13.8;
 
-      logHere('🌍 Far away (>10km). Sleeping for $intervalMinutes mins.');
+      final double etaSeconds = distance / effectiveSpeed;
+
+      final double safetyFactor = distance > 50000 ? 0.5 : 0.3;
+
+      final double calculatedSleep = etaSeconds * safetyFactor;
+
+      final int nextCheckSeconds = calculatedSleep.clamp(45, 900).toInt();
+
+      logHere(
+        '⏳ Target Far. ETA: ${(etaSeconds / 60).toStringAsFixed(0)} min. '
+        'Next check in ${(nextCheckSeconds / 60).toStringAsFixed(1)} min.',
+      );
 
       _adaptiveTimer?.cancel();
-      _adaptiveTimer = Timer(Duration(minutes: intervalMinutes), () {
-        _decideTrackingMode();
-      });
+      _adaptiveTimer = Timer(
+        Duration(seconds: nextCheckSeconds),
+        _decideTrackingMode,
+      );
     } else {
-      logHere('🎯 Close (<10km)! Switching to High Precision Stream.');
+      // We are close! Wake up the high-precision stream.
+      logHere(
+          '🎯 Close (<${kAdaptiveThreshold}m)! Switching to High Precision Stream.');
       _adaptiveTimer?.cancel();
 
       if (!_isGpsActive) {
@@ -121,13 +137,10 @@ class LocationProvider with ChangeNotifier {
     logHere('Detected Activity: ${activity.type}');
 
     if (activity.type == ActivityType.STILL) {
-      // STOP EVERYTHING when still
       logHere('💤 Still. Pausing all location checks.');
       _stopGpsStream();
       _adaptiveTimer?.cancel();
     } else {
-      // MOVING? Let the brain decide strategy (Stream vs Timer)
-      // Only trigger if we aren't already streaming or waiting on a timer
       if (!_isGpsActive &&
           (_adaptiveTimer == null || !_adaptiveTimer!.isActive)) {
         logHere('🚗 Moving. Calculating best tracking mode...');
@@ -261,15 +274,32 @@ class LocationProvider with ChangeNotifier {
     if (_selectedLocationIndex == null) return false;
 
     try {
-      // 1. Start Activity Recognition
-      await _initActivityRecognition();
+      final position = await _locationService.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
-      // 2. Trigger immediate check to decide strategy
+      final target = _locations[_selectedLocationIndex!];
+      
+      final distance = _locationService.calculateDistance(
+        position.latitude,
+        position.longitude,
+        target.latitude,
+        target.longitude,
+      );
+
+      if (distance <= target.radius) {
+        logHere('🚫 Already inside radius (${distance.toStringAsFixed(0)}m <= ${target.radius}m). Blocking start.');
+        Fluttertoast.showToast(msg: msgAlreadyWithinRadius);
+        return false;
+      }
+
+      await _initActivityRecognition();
       await _decideTrackingMode();
 
       return true;
     } catch (e) {
       logHere('$kLogInitialPositionFailed $e');
+      Fluttertoast.showToast(msg: msgLocationNotVerified);
       return false;
     }
   }
@@ -280,7 +310,7 @@ class LocationProvider with ChangeNotifier {
 
   Future<void> _sendRealtimeUpdate(
       Position position, LocationModel target) async {
-    final distanceInMeters = _locationService.calculateDistance(
+    final rawDistanceToCenter = _locationService.calculateDistance(
       position.latitude,
       position.longitude,
       target.latitude,
@@ -292,17 +322,20 @@ class LocationProvider with ChangeNotifier {
             target.radius;
 
     if (_settingsProvider.isNotificationThresholdEnabled &&
-        distanceInMeters > thresholdInMeters) {
+        rawDistanceToCenter > thresholdInMeters) {
       logHere(kLogDistanceAboveThreshold
-          .replaceAll('%s', distanceInMeters.toStringAsFixed(0))
+          .replaceAll('%s', rawDistanceToCenter.toStringAsFixed(0))
           .replaceAll('%r', thresholdInMeters.toStringAsFixed(0)));
 
       _notificationsPlugin.cancel(1);
       return;
     }
 
+    double distanceToEdge = rawDistanceToCenter - target.radius;
+    if (distanceToEdge < 0) distanceToEdge = 0;
+
     final formattedDistance = UnitConverter.formatDistanceForDisplay(
-      distanceInMeters,
+      distanceToEdge, 
       _settingsProvider.preferredUnitSystem,
     );
 

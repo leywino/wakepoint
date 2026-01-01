@@ -23,85 +23,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _checkPermissions() async {
-    _overlayGranted = await Permission.systemAlertWindow.isGranted;
-    _batteryGranted = await Permission.ignoreBatteryOptimizations.isGranted;
-    setState(() {});
+    final overlayStatus = await Permission.systemAlertWindow.isGranted;
+    final batteryStatus = await Permission.ignoreBatteryOptimizations.isGranted;
+
+    if (!mounted) return;
+
+    setState(() {
+      _overlayGranted = overlayStatus;
+      _batteryGranted = batteryStatus;
+    });
   }
 
   Future<void> _requestOverlayPermission(VoidCallback onGranted) async {
     final status = await Permission.systemAlertWindow.request();
-    setState(() {
-      _overlayGranted = status.isGranted;
-    });
-    if (status.isGranted) {
-      onGranted.call();
-    }
+
+    if (!mounted) return;
+    setState(() => _overlayGranted = status.isGranted);
+
+    if (status.isGranted) onGranted.call();
   }
 
   Future<void> _requestBatteryPermission() async {
     final status = await Permission.ignoreBatteryOptimizations.request();
+    if (!mounted) return;
     setState(() => _batteryGranted = status.isGranted);
   }
 
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(),
-      body: DefaultTextStyle(
-        style: const TextStyle(fontFamily: kDefaultFont),
-        child: ListView(
-          physics: BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(s16),
-          children: [
-            _buildTitle(theme),
-            verticalSpaceMedium,
-            _buildSectionTitle(sectionGeneral, theme),
-            _buildThemeSelection(settingsProvider),
-            _buildUnitSystemSelection(settingsProvider),
-            verticalSpaceMedium,
-            _buildSectionTitle(sectionTracking, theme),
-            _buildTrackingSettings(settingsProvider),
-            verticalSpaceMedium,
-            _buildSectionTitle(sectionAlarm, theme),
-            _buildAlarmSettings(settingsProvider),
-            verticalSpaceMedium,
-            _buildSectionTitle(sectionNotifications, theme),
-            _buildNotificationSettings(settingsProvider),
-            verticalSpaceMedium,
-           if (!_overlayGranted || !_batteryGranted) ...[
-            _buildSectionTitle(sectionPermissions, theme),
+      body: ListView(
+        physics: BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(s16),
+        children: [
+          _SettingsHeader(title: sectionSettings),
+          verticalSpaceMedium,
+          SettingsSectionTitle(title: sectionGeneral),
+          _buildThemeSelection(settingsProvider),
+          _buildUnitSystemSelection(settingsProvider),
+          verticalSpaceMedium,
+          SettingsSectionTitle(title: sectionTracking),
+          _buildTrackingSettings(settingsProvider),
+          verticalSpaceMedium,
+          SettingsSectionTitle(title: sectionAlarm),
+          _AlarmSettingsSection(
+            settingsProvider: settingsProvider,
+            overlayGranted: _overlayGranted,
+          ),
+          verticalSpaceMedium,
+          SettingsSectionTitle(title: sectionNotifications),
+          _buildNotificationSettings(settingsProvider),
+          verticalSpaceMedium,
+          if (!_overlayGranted || !_batteryGranted) ...[
+            SettingsSectionTitle(title: sectionPermissions),
             _buildPermissionSettings(settingsProvider),
             verticalSpaceMedium,
           ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTitle(ThemeData theme) {
-    return Text(
-      sectionSettings,
-      style: TextStyle(
-        fontSize: s32,
-        fontWeight: FontWeight.bold,
-        color: theme.colorScheme.onSurface,
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(top: s6),
-      child: Text(
-        title.toUpperCase(),
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
+        ],
       ),
     );
   }
@@ -195,93 +176,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAlarmSettings(SettingsProvider settingsProvider) {
-    return Column(
-      children: [
-        _buildSwitchTile(
-          labelVibration,
-          settingsProvider.enableAlarmVibration,
-          (value) => settingsProvider.enableAlarmVibration = value,
-          icon: Icons.vibration,
-        ),
-        _buildSwitchTile(
-          labelUseOverlayAlarm,
-          settingsProvider.useOverlayAlarmFeature,
-          _overlayGranted
-              ? (value) => settingsProvider.useOverlayAlarmFeature = value
-              : null,
-          disabled: !_overlayGranted,
-          subtitle: msgOverlayRequired,
-          icon: Icons.layers,
-        ),
-        _buildDropdownTile(
-          labelAlarmSound,
-          _getAlarmSoundLabel(settingsProvider.alarmSoundType),
-          [
-            _getAlarmSoundLabel(AlarmSoundType.ringtone),
-            _getAlarmSoundLabel(AlarmSoundType.alarm),
-          ],
-          (value) {
-            final newType = _getAlarmSoundTypeFromString(value!);
-            settingsProvider.alarmSoundType = newType;
-          },
-          icon: Icons.music_note,
-        ),
-        _buildAlarmDurationDropdownRow(settingsProvider),
-      ],
-    );
-  }
-
-  Row _buildAlarmDurationDropdownRow(SettingsProvider settingsProvider) {
-    final isDisabled = !settingsProvider.useOverlayAlarmFeature;
-    return Row(
-      children: [
-        const Icon(Icons.timer),
-        const SizedBox(width: s12),
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            decoration: const InputDecoration(
-              labelText: labelAlarmDuration,
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              border: UnderlineInputBorder(),
-            ),
-            initialValue: settingsProvider.alarmPlaybackDurationSeconds,
-            items: const [
-              DropdownMenuItem(
-                  value: alarmDurationDismissed,
-                  child: Text(alarmDurationLabelDismissed)),
-              DropdownMenuItem(
-                  value: alarmDuration15s, child: Text(alarmDurationLabel15s)),
-              DropdownMenuItem(
-                  value: alarmDuration30s, child: Text(alarmDurationLabel30s)),
-              DropdownMenuItem(
-                  value: alarmDuration60s, child: Text(alarmDurationLabel60s)),
-              DropdownMenuItem(
-                  value: alarmDuration90s, child: Text(alarmDurationLabel90s)),
-            ],
-            onChanged: isDisabled
-                ? null
-                : (value) {
-                    if (value != null) {
-                      settingsProvider.alarmPlaybackDurationSeconds = value;
-                    }
-                  },
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildTrackingSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
-        _buildDropdownTile(
-          labelTrackingAccuracy,
-          _getTrackingAccuracyLabel(settingsProvider.locationTrackingAccuracy),
-          [valHighAccuracy, valBalanced, valBatterySaving],
-          (value) => settingsProvider.locationTrackingAccuracy =
+        SettingsDropdownTile(
+          title: labelTrackingAccuracy,
+          value: _getTrackingAccuracyLabel(
+              settingsProvider.locationTrackingAccuracy),
+          options: [valHighAccuracy, valBalanced, valBatterySaving],
+          onChanged: (value) => settingsProvider.locationTrackingAccuracy =
               _getTrackingAccuracyFromString(value!),
           icon: Icons.location_searching,
         ),
@@ -326,10 +229,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildNotificationSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
-        _buildSwitchTile(
-          labelPersistentNotification,
-          settingsProvider.enablePersistentNotification,
-          (value) => settingsProvider.enablePersistentNotification = value,
+        SettingsSwitchTile(
+          title: labelPersistentNotification,
+          value: settingsProvider.enablePersistentNotification,
+          onChanged: (value) =>
+              settingsProvider.enablePersistentNotification = value,
           icon: Icons.push_pin,
           subtitle: descEnablePersistent,
         ),
@@ -373,38 +277,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDropdownTile(String title, String value, List<String> options,
-      ValueChanged<String?>? onChanged,
-      {IconData icon = Icons.arrow_drop_down}) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(title),
-      trailing: DropdownButton<String>(
-        value: value,
-        items: options
-            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-            .toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile(
-      String title, bool value, ValueChanged<bool>? onChanged,
-      {bool disabled = false,
-      String? subtitle,
-      IconData icon = Icons.toggle_on}) {
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      secondary: Icon(icon),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      value: value,
-      onChanged: disabled ? null : onChanged,
-    );
-  }
-
   String _getTrackingAccuracyLabel(int trackingAccuracy) {
     switch (trackingAccuracy) {
       case 0:
@@ -430,6 +302,144 @@ class _SettingsScreenState extends State<SettingsScreen> {
         throw ArgumentError(msgInvalidAccuracy(accuracy));
     }
   }
+}
+
+class SettingsSectionTitle extends StatelessWidget {
+  const SettingsSectionTitle({
+    super.key,
+    required this.title,
+  });
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: s6),
+      child: Text(
+        title.toUpperCase(),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsHeader extends StatelessWidget {
+  const _SettingsHeader({
+    required this.title,
+  });
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: s32,
+        fontWeight: FontWeight.bold,
+        color: theme.colorScheme.onSurface,
+      ),
+    );
+  }
+}
+
+class _AlarmSettingsSection extends StatelessWidget {
+  final SettingsProvider settingsProvider;
+  final bool overlayGranted;
+
+  const _AlarmSettingsSection({
+    required this.settingsProvider,
+    required this.overlayGranted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SettingsSwitchTile(
+          title: labelVibration,
+          icon: Icons.vibration,
+          value: settingsProvider.enableAlarmVibration,
+          onChanged: (value) => settingsProvider.enableAlarmVibration = value,
+        ),
+        SettingsSwitchTile(
+          title: labelUseOverlayAlarm,
+          subtitle: msgOverlayRequired,
+          icon: Icons.layers,
+          disabled: !overlayGranted,
+          value: settingsProvider.useOverlayAlarmFeature,
+          onChanged: overlayGranted
+              ? (value) => settingsProvider.useOverlayAlarmFeature = value
+              : null,
+        ),
+        SettingsDropdownTile(
+          title: labelAlarmSound,
+          icon: Icons.music_note,
+          value: _getAlarmSoundLabel(settingsProvider.alarmSoundType),
+          options: [
+            _getAlarmSoundLabel(AlarmSoundType.ringtone),
+            _getAlarmSoundLabel(AlarmSoundType.alarm),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              settingsProvider.alarmSoundType =
+                  _getAlarmSoundTypeFromString(value);
+            }
+          },
+        ),
+        _buildAlarmDurationDropdownRow(),
+      ],
+    );
+  }
+
+  Widget _buildAlarmDurationDropdownRow() {
+    final isDisabled = !settingsProvider.useOverlayAlarmFeature;
+
+    return Row(
+      children: [
+        const Icon(Icons.timer),
+        const SizedBox(width: s12),
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            decoration: const InputDecoration(
+              labelText: labelAlarmDuration,
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              border: UnderlineInputBorder(),
+            ),
+            initialValue: settingsProvider.alarmPlaybackDurationSeconds,
+            items: const [
+              DropdownMenuItem(
+                  value: alarmDurationDismissed,
+                  child: Text(alarmDurationLabelDismissed)),
+              DropdownMenuItem(
+                  value: alarmDuration15s, child: Text(alarmDurationLabel15s)),
+              DropdownMenuItem(
+                  value: alarmDuration30s, child: Text(alarmDurationLabel30s)),
+              DropdownMenuItem(
+                  value: alarmDuration60s, child: Text(alarmDurationLabel60s)),
+              DropdownMenuItem(
+                  value: alarmDuration90s, child: Text(alarmDurationLabel90s)),
+            ],
+            onChanged: isDisabled
+                ? null
+                : (value) {
+                    if (value != null) {
+                      settingsProvider.alarmPlaybackDurationSeconds = value;
+                    }
+                  },
+          ),
+        ),
+      ],
+    );
+  }
 
   String _getAlarmSoundLabel(AlarmSoundType type) {
     switch (type) {
@@ -449,5 +459,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
       default:
         return AlarmSoundType.ringtone;
     }
+  }
+}
+
+class SettingsSwitchTile extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final bool disabled;
+
+  const SettingsSwitchTile({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+    this.disabled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile.adaptive(
+      contentPadding: EdgeInsets.zero,
+      secondary: Icon(icon),
+      title: Text(title),
+      subtitle: subtitle != null ? Text(subtitle!) : null,
+      value: value,
+      onChanged: disabled ? null : onChanged,
+    );
+  }
+}
+
+class SettingsDropdownTile extends StatelessWidget {
+  final String title;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String?>? onChanged;
+  final IconData icon;
+
+  const SettingsDropdownTile({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.icon = Icons.arrow_drop_down,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(title),
+      trailing: DropdownButton<String>(
+        value: value,
+        items: options
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
+        onChanged: onChanged,
+      ),
+    );
   }
 }

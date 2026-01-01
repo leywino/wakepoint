@@ -195,6 +195,7 @@ const String kLogDistanceAboveThreshold =
 const String kReachedLocationPrefix = 'Reached ';
 const String msgLocationNotFound = 'Error: Location to edit not found.';
 const String msgLocationUpdated = 'Location updated succesfully.';
+const String msgLocationNotVerified = 'Could not verify current location.';
 const String msgLocationAdded = 'Location added succesfully.';
 
 // ─────────────────────────────────────────────

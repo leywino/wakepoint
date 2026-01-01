@@ -68,7 +68,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
 
   void _saveLocation(String finalName) {
     final provider = Provider.of<LocationProvider>(context, listen: false);
-    
+
     final newLocation = LocationModel(
       name: finalName, // Use the name from the dialog
       latitude: _selectedLatLng!.latitude,
@@ -210,8 +210,12 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
   }
 
   Future<String?> _showNameDialog() async {
-    final TextEditingController nameController = 
-        TextEditingController(text: _selectedLocationName);
+    final TextEditingController nameController =
+        TextEditingController(text: _selectedLocationName)
+          ..selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _selectedLocationName!.length,
+          );
 
     return showDialog<String>(
       context: context,
@@ -254,7 +258,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       padding: const EdgeInsets.all(s8),
       alignment: Alignment.bottomRight,
       child: ElevatedButton.icon(
-        onPressed: isEnabled 
+        onPressed: isEnabled
             ? () async {
                 final customName = await _showNameDialog();
                 if (customName != null) {

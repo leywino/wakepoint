@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart'; // Import this
 import 'package:permission_handler/permission_handler.dart'; // Import this
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/location_provider.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/pages/home_screen.dart';
@@ -14,7 +15,8 @@ import 'package:wakepoint/services/location_service.dart';
 void main() async {
   await dotenv.load(fileName: '.env');
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterDisplayMode.setHighRefreshRate(); // Await this for smoother start
+  await FlutterDisplayMode
+      .setHighRefreshRate(); // Await this for smoother start
   runApp(const MyApp());
 }
 
@@ -29,12 +31,12 @@ class MyApp extends StatelessWidget {
     // 2. Check Permissions Directly
     // Location
     final locStatus = await Geolocator.checkPermission();
-    final hasLocation = locStatus == LocationPermission.always || 
-                        locStatus == LocationPermission.whileInUse;
-    
+    final hasLocation = locStatus == LocationPermission.always ||
+        locStatus == LocationPermission.whileInUse;
+
     // Notification
     final hasNotification = await Permission.notification.isGranted;
-    
+
     // Activity (Since you added it as mandatory)
     final hasActivity = await Permission.activityRecognition.isGranted;
 
@@ -67,14 +69,15 @@ class MyApp extends StatelessWidget {
           providers: [
             ChangeNotifierProvider(
                 create: (context) => SettingsProvider(prefs)),
-            // Note: LocationProvider depends on SettingsProvider, 
-            // so often it's better to use ProxyProvider, but if your 
+            // Note: LocationProvider depends on SettingsProvider,
+            // so often it's better to use ProxyProvider, but if your
             // current setup works, keep it.
             ChangeNotifierProxyProvider<SettingsProvider, LocationProvider>(
               create: (ctx) => LocationProvider(
-                  Provider.of<SettingsProvider>(ctx, listen: false), 
+                  Provider.of<SettingsProvider>(ctx, listen: false),
                   LocationService()),
-              update: (ctx, settings, prev) => LocationProvider(settings, LocationService()),
+              update: (ctx, settings, prev) =>
+                  LocationProvider(settings, LocationService()),
             ),
           ],
           child: MainApp(isAuthorized: isAuthorized),
@@ -96,11 +99,22 @@ class MainApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.values[settingsProvider.theme.index],
-          darkTheme: ThemeData.dark(useMaterial3: true),
-          theme: ThemeData.light(useMaterial3: true),
-          // LOGIC CHANGED HERE:
-          // If authorized -> Home
-          // If NOT authorized -> PermissionScreen
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.purple,
+              brightness: Brightness.light,
+            ),
+            fontFamily: kDefaultFont,
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            fontFamily: kDefaultFont,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.purple,
+              brightness: Brightness.dark,
+            ),
+          ),
           home: isAuthorized ? const HomeScreen() : const PermissionScreen(),
         );
       },
