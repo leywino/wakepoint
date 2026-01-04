@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -175,7 +176,59 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(s16),
               child: _buildBody(locationProvider, settingsProvider),
             ),
-            floatingActionButton: _buildFloatingActionButton(),
+            floatingActionButton: Row(
+              children: [
+                _buildFloatingActionButton(),
+                ElevatedButton(
+                  child: const Text("TEST WAKEUP (Lock screen now!)"),
+                  onPressed: () async {
+                    const platform =
+                        MethodChannel('com.leywin.wakepoint/permission');
+
+                    try {
+                      // 1. Check if we have the permission
+                      final bool isGranted =
+                          await platform.invokeMethod('checkFSI');
+
+                     
+
+                      if (!isGranted) {
+                        // 2. Show a dialog explaining WHY you need it
+                        // "To wake up your screen when you reach the location,
+                        // we need the 'Full Screen Intent' permission."
+
+                        // 3. If user agrees, open settings
+                        await platform.invokeMethod('requestFSI');
+                      }else{
+                         print('fucking permisison is granted bruh');
+                      }
+                    } catch (e) {
+                      print("Error checking permission: $e");
+                    }
+                    // 1. Give yourself 5 seconds to hit the power button and lock the phone
+                    Future.delayed(const Duration(seconds: 5), () async {
+                      print("⏳ Triggering Alarm Signal...");
+
+                      // 2. Directly invoke the native channel to test MainActivity.kt logic
+                      const platform =
+                          MethodChannel('com.leywin.wakepoint/alarm');
+                      try {
+                        await platform.invokeMethod('startAlarm');
+                        print("✅ Alarm signal sent to Kotlin!");
+                      } catch (e) {
+                        print("❌ Error: $e");
+                      }
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AlarmScreen()),
+                      );
+                    });
+                  },
+                )
+              ],
+            ),
           ),
         );
       },

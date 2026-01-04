@@ -271,6 +271,7 @@ class LocationProvider with ChangeNotifier {
   }
 
   Future<bool> _startTracking() async {
+
     if (_selectedLocationIndex == null) return false;
 
     try {
@@ -279,7 +280,7 @@ class LocationProvider with ChangeNotifier {
       );
 
       final target = _locations[_selectedLocationIndex!];
-      
+
       final distance = _locationService.calculateDistance(
         position.latitude,
         position.longitude,
@@ -288,7 +289,8 @@ class LocationProvider with ChangeNotifier {
       );
 
       if (distance <= target.radius) {
-        logHere('🚫 Already inside radius (${distance.toStringAsFixed(0)}m <= ${target.radius}m). Blocking start.');
+        logHere(
+            '🚫 Already inside radius (${distance.toStringAsFixed(0)}m <= ${target.radius}m). Blocking start.');
         Fluttertoast.showToast(msg: msgAlreadyWithinRadius);
         return false;
       }
@@ -335,7 +337,7 @@ class LocationProvider with ChangeNotifier {
     if (distanceToEdge < 0) distanceToEdge = 0;
 
     final formattedDistance = UnitConverter.formatDistanceForDisplay(
-      distanceToEdge, 
+      distanceToEdge,
       _settingsProvider.preferredUnitSystem,
     );
 
