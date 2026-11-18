@@ -62,11 +62,11 @@ class _AlarmScreenState extends State<AlarmScreen>
 
   @override
   Widget build(BuildContext context) {
-    final brightness = MediaQuery.of(context).platformBrightness;
-    final isDark = brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.black : Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
         child: Center(
@@ -83,13 +83,15 @@ class _AlarmScreenState extends State<AlarmScreen>
                 child: Icon(
                   Icons.alarm,
                   size: 100,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 30),
               Text(
                 msgWakeUpNearStop,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
