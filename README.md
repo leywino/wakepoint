@@ -16,18 +16,20 @@
   </a>
   <img src="https://img.shields.io/badge/Platform-Android-lightgrey" alt="Platform" />
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" />
-  <img src="https://img.shields.io/badge/version-0.6.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.7.0-blue" alt="Version" />
 </p>
 
 <p align="center">
   <br>
-  <img width="25%" src=".github/readme_images/Screenshot_Dark1.png"" alt="home screen page dark">
-  <img width="25%" src=".github/readme_images/Screenshot_Dark2.png"" alt="add location page dart">
-  <img width="25%" src=".github/readme_images/Screenshot_Dark3.png"" alt="settings page dark">
+  <img width="22%" src=".github/readme_images/Screenshot_Dark1.png" alt="Home screen dark theme">
+  <img width="22%" src=".github/readme_images/Screenshot_Dark2.png" alt="Add location dark theme">
+  <img width="22%" src=".github/readme_images/Screenshot_Dark3.png" alt="Settings dark theme">
+  <img width="22%" src=".github/readme_images/Screenshot_Dark4.png" alt="Alarm screen dark theme">
   <br/>
-  <img width="25%" src=".github/readme_images/Screenshot_Light1.png" alt="home screen page light">
-  <img width="25%" src=".github/readme_images/Screenshot_Light2.png" alt="add location page light">
-  <img width="25%" src=".github/readme_images/Screenshot_Light3.png" alt="settings page light">
+  <img width="22%" src=".github/readme_images/Screenshot_Light1.png" alt="Home screen light theme">
+  <img width="22%" src=".github/readme_images/Screenshot_Light2.png" alt="Add location light theme">
+  <img width="22%" src=".github/readme_images/Screenshot_Light3.png" alt="Settings light theme">
+  <img width="22%" src=".github/readme_images/Screenshot_Light4.png" alt="Alarm screen light theme">
 </p>
 
 ---
