@@ -35,6 +35,13 @@ class GeofenceService {
     await _channel.invokeMethod<void>('remove');
   }
 
+  Future<bool> canUseFullScreenIntent() async =>
+      await _channel.invokeMethod<bool>('canUseFullScreenIntent') ?? false;
+
+  Future<void> openAlarmPresentationSettings() async {
+    await _channel.invokeMethod<void>('openAlarmPresentationSettings');
+  }
+
   Future<Map<String, dynamic>?> consumePendingEvent() async {
     final event = await _channel.invokeMapMethod<String, dynamic>(
       'consumePendingEvent',

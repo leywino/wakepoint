@@ -290,6 +290,15 @@ class LocationProvider with ChangeNotifier {
     if (_selectedLocationIndex == null) return false;
 
     try {
+      if (!await _geofenceService.canUseFullScreenIntent()) {
+        await _geofenceService.openAlarmPresentationSettings();
+        Fluttertoast.showToast(
+          msg:
+              'Allow WakePoint alarm notifications and full-screen access, then start again.',
+        );
+        return false;
+      }
+
       final position = await _locationService.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );

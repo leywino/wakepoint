@@ -55,39 +55,49 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     }
 
     private fun notifyArrival(context: Context, manager: NotificationManager) {
-        val name = activeName(context)
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val event = JSONObject()
-            .put("type", "arrival")
-            .put("name", name)
-            .put("tripId", prefs.getString(ACTIVE_ID_KEY, ""))
-            .put("timestamp", System.currentTimeMillis())
-        prefs.edit().putString(PENDING_EVENT_KEY, event.toString()).apply()
+    val name = activeName(context)
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
-            putExtra(EXTRA_EVENT_TYPE, "arrival")
-            putExtra(EXTRA_LOCATION_NAME, name)
-            putExtra(EXTRA_TRIP_ID, prefs.getString(ACTIVE_ID_KEY, ""))
-        }
-        val alarmPendingIntent = PendingIntent.getActivity(
-            context,
-            ALARM_NOTIFICATION_ID,
-            alarmIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val notification = NotificationCompat.Builder(context, ALARM_CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_notification)
-            .setContentTitle("WakePoint: destination reached")
-            .setContentText("You have arrived at $name.")
-            .setContentIntent(alarmPendingIntent)
-            .setFullScreenIntent(alarmPendingIntent, true)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setAutoCancel(true)
-            .setOngoing(false)
-            .build()
-        manager.notify(ALARM_NOTIFICATION_ID, notification)
+    val event = JSONObject()
+        .put("type", "arrival")
+        .put("name", name)
+        .put("tripId", prefs.getString(ACTIVE_ID_KEY, ""))
+        .put("timestamp", System.currentTimeMillis())
+
+    prefs.edit().putString(PENDING_EVENT_KEY, event.toString()).apply()
+
+    val alarmIntent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
+
+        putExtra(EXTRA_EVENT_TYPE, "arrival")
+        putExtra(EXTRA_LOCATION_NAME, name)
+        putExtra(EXTRA_TRIP_ID, prefs.getString(ACTIVE_ID_KEY, ""))
     }
+
+    val alarmPendingIntent = PendingIntent.getActivity(
+        context,
+        ALARM_NOTIFICATION_ID,
+        alarmIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    val notification = NotificationCompat.Builder(context, ALARM_CHANNEL)
+        .setSmallIcon(R.drawable.ic_stat_notification)
+        .setContentTitle("Arrived at $name")
+        .setContentText("Your destination is here.")
+        .setContentIntent(alarmPendingIntent)
+        .setFullScreenIntent(alarmPendingIntent, true)
+        .setCategory(NotificationCompat.CATEGORY_ALARM)
+        .setPriority(NotificationCompat.PRIORITY_MAX)
+        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        .setAutoCancel(false)
+        .setOngoing(true)
+        .build()
+
+    manager.notify(ALARM_NOTIFICATION_ID, notification)
+}
 
     private fun activeName(context: Context): String =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

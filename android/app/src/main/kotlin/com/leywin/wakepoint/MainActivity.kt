@@ -7,6 +7,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.location.Geofence
@@ -63,6 +64,13 @@ class MainActivity : FlutterActivity() {
                     "register" -> registerGeofences(call, result)
                     "remove" -> removeGeofences(result)
                     "consumePendingEvent" -> consumePendingEvent(result)
+                    "canUseFullScreenIntent" -> {
+                        result.success(hasAlarmPresentationAccess())
+                    }
+                    "openAlarmPresentationSettings" -> {
+                        openAlarmPresentationSettings()
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -87,12 +95,68 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun showAlarmOverLockScreen(intent: Intent?) {
-        if (intent?.getStringExtra(GeofenceBroadcastReceiver.EXTRA_EVENT_TYPE) != "arrival") return
+    if (intent?.getStringExtra(GeofenceBroadcastReceiver.EXTRA_EVENT_TYPE) != "arrival") {
+        return
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
+    } else {
         window.addFlags(
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         )
+    }
+
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+}
+
+    private fun hasAlarmPresentationAccess(): Boolean {
+        val notificationManager = getSystemService(android.app.NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notificationManager.createNotificationChannel(
+                android.app.NotificationChannel(
+                    GeofenceBroadcastReceiver.ALARM_CHANNEL,
+                    "Destination alarm",
+                    android.app.NotificationManager.IMPORTANCE_HIGH,
+                ),
+            )
+        }
+        val channelEnabled = Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            (notificationManager.getNotificationChannel(
+                GeofenceBroadcastReceiver.ALARM_CHANNEL,
+            )?.importance ?: android.app.NotificationManager.IMPORTANCE_NONE) >=
+            android.app.NotificationManager.IMPORTANCE_HIGH
+        val fullScreenAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+            notificationManager.canUseFullScreenIntent()
+        return channelEnabled && fullScreenAllowed &&
+            NotificationManagerCompat.from(this).areNotificationsEnabled()
+    }
+
+    private fun openAlarmPresentationSettings() {
+        val notificationManager = getSystemService(android.app.NotificationManager::class.java)
+        val fullScreenAllowed = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+            notificationManager.canUseFullScreenIntent()
+        val notificationsEnabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
+        val settingsIntent = when {
+            !fullScreenAllowed && Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+                Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                }
+            !notificationsEnabled -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ->
+                Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                    putExtra(Settings.EXTRA_CHANNEL_ID, GeofenceBroadcastReceiver.ALARM_CHANNEL)
+                }
+            else -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            }
+        }
+        startActivity(settingsIntent)
     }
 
     private fun registerGeofences(call: MethodCall, result: MethodChannel.Result) {
