@@ -54,7 +54,13 @@ android {
         targetSdk = 36
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
-        resValue "string", "google_maps_api_key", localProperties.getProperty("google.maps.api.key") ?: ""
+        def googleMapsApiKey = localProperties.getProperty("google.maps.api.key")
+
+if (googleMapsApiKey == null || googleMapsApiKey.trim().isEmpty()) {
+    throw new GradleException("Google Maps API key is missing from local.properties")
+}
+
+resValue "string", "google_maps_api_key", googleMapsApiKey
     }
 
     signingConfigs {
