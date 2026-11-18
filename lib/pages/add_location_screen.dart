@@ -268,37 +268,38 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.all(s8),
-        alignment: Alignment.bottomRight,
-        child: ElevatedButton.icon(
-          onPressed: isEnabled
-              ? () async {
-                  final customName = await _showNameDialog();
-                  if (customName != null) {
-                    _saveLocation(customName);
+        padding: const EdgeInsets.fromLTRB(s16, s12, s16, s12),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: isEnabled
+                ? () async {
+                    final customName = await _showNameDialog();
+                    if (customName != null) {
+                      _saveLocation(customName);
+                    }
                   }
-                }
-              : null,
-          label: const Text(
-            'Save',
-            style: TextStyle(
-              fontSize: s16,
-              fontWeight: FontWeight.bold,
-              fontFamily: kDefaultFont,
+                : null,
+            icon: const Icon(Icons.check_rounded),
+            label: Text(
+              widget.locationToEdit != null
+                  ? 'Save changes'
+                  : 'Save destination',
+              style: TextStyle(
+                fontSize: s16,
+                fontWeight: FontWeight.bold,
+                fontFamily: kDefaultFont,
+              ),
             ),
-          ),
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: s20, vertical: s8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(s0),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              disabledBackgroundColor:
+                  theme.colorScheme.primary.withValues(alpha: 0.3),
+              disabledForegroundColor:
+                  theme.colorScheme.onPrimary.withValues(alpha: 0.5),
             ),
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: theme.colorScheme.onPrimary,
-            disabledBackgroundColor:
-                theme.colorScheme.primary.withValues(alpha: 0.3),
-            disabledForegroundColor:
-                theme.colorScheme.onPrimary.withValues(alpha: 0.5),
-            elevation: 4,
           ),
         ),
       ),

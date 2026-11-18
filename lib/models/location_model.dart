@@ -21,7 +21,7 @@ class LocationModel {
         'longitude': longitude,
         'isEnabled': isEnabled,
         'radius': radius,
-        'createdAt': DateTime.now().toIso8601String(),
+        'createdAt': createdAt?.toIso8601String(),
       };
 
   factory LocationModel.fromJson(Map<String, dynamic> json) => LocationModel(

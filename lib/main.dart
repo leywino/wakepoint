@@ -13,8 +13,7 @@ import 'package:wakepoint/services/location_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await FlutterDisplayMode
-      .setHighRefreshRate();
+  await FlutterDisplayMode.setHighRefreshRate();
   runApp(const MyApp());
 }
 
@@ -75,7 +74,7 @@ class MyApp extends StatelessWidget {
                   Provider.of<SettingsProvider>(ctx, listen: false),
                   LocationService()),
               update: (ctx, settings, prev) =>
-                  LocationProvider(settings, LocationService()),
+                  prev ?? LocationProvider(settings, LocationService()),
             ),
           ],
           child: MainApp(isAuthorized: isAuthorized),
@@ -100,7 +99,7 @@ class MainApp extends StatelessWidget {
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.purple,
+              seedColor: const Color(0xFF087E8B),
               brightness: Brightness.light,
             ),
             fontFamily: kDefaultFont,
@@ -109,7 +108,7 @@ class MainApp extends StatelessWidget {
             useMaterial3: true,
             fontFamily: kDefaultFont,
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.purple,
+              seedColor: const Color(0xFF43C6B5),
               brightness: Brightness.dark,
             ),
           ),

@@ -65,60 +65,78 @@ class LocationProvider with ChangeNotifier {
   Future<void> _decideTrackingMode() async {
     if (_selectedLocationIndex == null || !_isTracking) return;
 
-    final position = await _locationService.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.medium,
-    );
+    try {
+      final position = await _locationService.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
 
-    final target = _locations[_selectedLocationIndex!];
-    final distance = _locationService.calculateDistance(
-      position.latitude,
-      position.longitude,
-      target.latitude,
-      target.longitude,
-    );
+      final target = _locations[_selectedLocationIndex!];
 
-    logHere(
-        '📍 Check: ${(distance / 1000).toStringAsFixed(1)}km away. Speed: ${position.speed.toStringAsFixed(1)} m/s');
-
-    if (distance > kAdaptiveThreshold) {
-      if (_isGpsActive) _stopGpsStream();
-
-      final double effectiveSpeed =
-          (position.speed > 1.5) ? position.speed : 13.8;
-
-      final double etaSeconds = distance / effectiveSpeed;
-
-      final double safetyFactor = distance > 50000 ? 0.5 : 0.3;
-
-      final double calculatedSleep = etaSeconds * safetyFactor;
-
-      final int nextCheckSeconds = calculatedSleep.clamp(45, 900).toInt();
+      final distance = _locationService.calculateDistance(
+        position.latitude,
+        position.longitude,
+        target.latitude,
+        target.longitude,
+      );
 
       logHere(
-        '⏳ Target Far. ETA: ${(etaSeconds / 60).toStringAsFixed(0)} min. '
-        'Next check in ${(nextCheckSeconds / 60).toStringAsFixed(1)} min.',
+        '📍 Check: ${(distance / 1000).toStringAsFixed(1)}km away. '
+        'Speed: ${(position.speed).toStringAsFixed(1)} m/s',
+      );
+
+      if (distance <= kAdaptiveThreshold) {
+        logHere(
+            '🎯 Within ${(kAdaptiveThreshold / 1000).toStringAsFixed(0)}km. '
+            'Switching to continuous GPS.');
+
+        _adaptiveTimer?.cancel();
+        _adaptiveTimer = null;
+
+        if (!_isGpsActive) {
+          _startGpsStream();
+        }
+
+        return;
+      }
+
+      if (_isGpsActive) {
+        _stopGpsStream();
+      }
+
+      final int nextCheckSeconds;
+
+      if (distance > 50000) {
+        nextCheckSeconds = 300; // 5 minutes
+      } else if (distance > 25000) {
+        nextCheckSeconds = 180; // 3 minutes
+      } else {
+        nextCheckSeconds = 60; // 1 minute
+      }
+
+      logHere(
+        '⏳ Target far. Next check in '
+        '${(nextCheckSeconds / 60).toStringAsFixed(0)} min.',
       );
 
       _adaptiveTimer?.cancel();
+
       _adaptiveTimer = Timer(
         Duration(seconds: nextCheckSeconds),
         _decideTrackingMode,
       );
-    } else {
-      // We are close! Wake up the high-precision stream.
-      logHere(
-          '🎯 Close (<${kAdaptiveThreshold}m)! Switching to High Precision Stream.');
-      _adaptiveTimer?.cancel();
+    } catch (e) {
+      logHere('⚠️ Adaptive tracking check failed: $e');
 
-      if (!_isGpsActive) {
-        _startGpsStream();
-      }
+      _adaptiveTimer?.cancel();
+      _adaptiveTimer = Timer(
+        const Duration(seconds: 60),
+        _decideTrackingMode,
+      );
     }
   }
 
   Future<void> _initActivityRecognition() async {
-    // FIX: Always cancel the old subscription before starting a new one
-    await _activitySubscription?.cancel(); 
+    await _activitySubscription?.cancel();
     _activitySubscription = null;
 
     bool isGranted = await Permission.activityRecognition.isGranted;
@@ -212,9 +230,24 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
+  void renameLocation(LocationModel location, String name) {
+    final index = _locations.indexWhere((item) => identical(item, location));
+    if (index == -1) return;
+    _locations[index] = location.copyWith(name: name);
+    _saveLocations();
+    notifyListeners();
+  }
+
   void removeLocation(int index) {
+    if (index < 0 || index >= _locations.length) return;
+    if (_isTracking && _selectedLocationIndex == index) stopTracking();
     _locations.removeAt(index);
-    if (_selectedLocationIndex == index) _selectedLocationIndex = null;
+    if (_selectedLocationIndex == index) {
+      _selectedLocationIndex = null;
+    } else if (_selectedLocationIndex != null &&
+        _selectedLocationIndex! > index) {
+      _selectedLocationIndex = _selectedLocationIndex! - 1;
+    }
     _saveLocations();
     notifyListeners();
   }
@@ -226,16 +259,24 @@ class LocationProvider with ChangeNotifier {
     }
   }
 
-  void toggleTracking() async {
-    _isTracking = !_isTracking;
-    if (_isTracking) {
-      bool started = await _startTracking();
-      if (started) {
-        _startForegroundService();
-      }
-    } else {
+  Future<void> toggleTracking() async {
+    if (_isTracking || _isInitializingTracking) {
       stopTracking();
+      return;
     }
+    if (_selectedLocationIndex == null) return;
+    _isInitializingTracking = true;
+    notifyListeners();
+    final started = await _startTracking();
+    if (!started) {
+      _isInitializingTracking = false;
+      _isTracking = false;
+      notifyListeners();
+      return;
+    }
+    _isTracking = true;
+    _isInitializingTracking = false;
+    await _startForegroundService();
     notifyListeners();
   }
 
@@ -260,8 +301,8 @@ class LocationProvider with ChangeNotifier {
     _adaptiveTimer?.cancel(); // NEW: Kill the timer
     _adaptiveTimer = null;
 
-    _notificationsPlugin.cancel(id:1);
-    _notificationsPlugin.cancel(id:0);
+    _notificationsPlugin.cancel(id: 1);
+    _notificationsPlugin.cancel(id: 0);
     if (FlutterBackground.isBackgroundExecutionEnabled) {
       FlutterBackground.disableBackgroundExecution();
     }
@@ -282,7 +323,7 @@ class LocationProvider with ChangeNotifier {
       );
 
       final target = _locations[_selectedLocationIndex!];
-      
+
       final distance = _locationService.calculateDistance(
         position.latitude,
         position.longitude,
@@ -291,13 +332,16 @@ class LocationProvider with ChangeNotifier {
       );
 
       if (distance <= target.radius) {
-        logHere('🚫 Already inside radius (${distance.toStringAsFixed(0)}m <= ${target.radius}m). Blocking start.');
+        logHere(
+            '🚫 Already inside radius (${distance.toStringAsFixed(0)}m <= ${target.radius}m). Blocking start.');
         Fluttertoast.showToast(msg: msgAlreadyWithinRadius);
         return false;
       }
 
       await _initActivityRecognition();
+      _isTracking = true;
       await _decideTrackingMode();
+      // _startGpsStream();
 
       return true;
     } catch (e) {
@@ -338,7 +382,7 @@ class LocationProvider with ChangeNotifier {
     if (distanceToEdge < 0) distanceToEdge = 0;
 
     final formattedDistance = UnitConverter.formatDistanceForDisplay(
-      distanceToEdge, 
+      distanceToEdge,
       _settingsProvider.preferredUnitSystem,
     );
 
@@ -366,7 +410,10 @@ class LocationProvider with ChangeNotifier {
     final details = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
-        id:1,title:  target.name, body:  '$labelDistance $formattedDistance', notificationDetails:  details);
+        id: 1,
+        title: target.name,
+        body: '$labelDistance $formattedDistance',
+        notificationDetails: details);
   }
 
   Future<void> _triggerAlarm(LocationModel location) async {
@@ -385,7 +432,10 @@ class LocationProvider with ChangeNotifier {
 
     final details = NotificationDetails(android: androidDetails);
     await _notificationsPlugin.show(
-       id: 0,title:  titleWakePointAlert,body:  '$msgYouAreNear${location.name}.',notificationDetails:  details);
+        id: 0,
+        title: titleWakePointAlert,
+        body: '$msgYouAreNear${location.name}.',
+        notificationDetails: details);
 
     if (_settingsProvider.useOverlayAlarmFeature) {
       const platform = MethodChannel(kMethodChannelAlarm);
