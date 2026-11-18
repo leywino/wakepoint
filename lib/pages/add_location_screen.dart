@@ -265,37 +265,41 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
     final isEnabled = _selectedLatLng != null && _selectedLocationName != null;
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(s8),
-      alignment: Alignment.bottomRight,
-      child: ElevatedButton.icon(
-        onPressed: isEnabled
-            ? () async {
-                final customName = await _showNameDialog();
-                if (customName != null) {
-                  _saveLocation(customName);
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.all(s8),
+        alignment: Alignment.bottomRight,
+        child: ElevatedButton.icon(
+          onPressed: isEnabled
+              ? () async {
+                  final customName = await _showNameDialog();
+                  if (customName != null) {
+                    _saveLocation(customName);
+                  }
                 }
-              }
-            : null,
-        // icon: const Icon(Icons.save, size: s20),
-        label: const Text(
-          'Save',
-          style: TextStyle(
+              : null,
+          label: const Text(
+            'Save',
+            style: TextStyle(
               fontSize: s16,
               fontWeight: FontWeight.bold,
-              fontFamily: kDefaultFont),
-        ),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: s20, vertical: s8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(s0)),
-          backgroundColor: theme.colorScheme.primary,
-          foregroundColor: theme.colorScheme.onPrimary,
-          disabledBackgroundColor:
-              theme.colorScheme.primary.withValues(alpha: 0.3),
-          disabledForegroundColor:
-              theme.colorScheme.onPrimary.withValues(alpha: 0.5),
-          elevation: 4,
+              fontFamily: kDefaultFont,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: s20, vertical: s8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(s0),
+            ),
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+            disabledBackgroundColor:
+                theme.colorScheme.primary.withValues(alpha: 0.3),
+            disabledForegroundColor:
+                theme.colorScheme.onPrimary.withValues(alpha: 0.5),
+            elevation: 4,
+          ),
         ),
       ),
     );
