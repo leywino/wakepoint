@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart'; // Import this
 import 'package:permission_handler/permission_handler.dart'; // Import this
 import 'package:provider/provider.dart';
@@ -13,7 +12,6 @@ import 'package:wakepoint/pages/permission_screen.dart';
 import 'package:wakepoint/services/location_service.dart';
 
 void main() async {
-  await dotenv.load(fileName: '.env');
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDisplayMode
       .setHighRefreshRate(); // Await this for smoother start

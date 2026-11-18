@@ -5,7 +5,8 @@ export 'constant_sizes.dart';
 export 'constant_strings.dart';
 
 const String kDefaultFont = 'Poppins';
-
+const String googlePlacesApiKey =
+    String.fromEnvironment('GOOGLE_PLACES_API_KEY');
 const List<int> ksRadiusOptions = [
   50,
   100,

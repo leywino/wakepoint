@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:flutter_background/flutter_background.dart';
@@ -55,7 +55,7 @@ class LocationProvider with ChangeNotifier {
     const settings = InitializationSettings(android: androidSettings);
 
     _notificationsPlugin.initialize(
-      settings,
+      settings: settings,
       onDidReceiveNotificationResponse: (response) {
         if (response.actionId == 'STOP_TRACKING') stopTracking();
       },
@@ -117,7 +117,10 @@ class LocationProvider with ChangeNotifier {
   }
 
   Future<void> _initActivityRecognition() async {
-    // 1. Check or Request Permission
+    // FIX: Always cancel the old subscription before starting a new one
+    await _activitySubscription?.cancel(); 
+    _activitySubscription = null;
+
     bool isGranted = await Permission.activityRecognition.isGranted;
     if (!isGranted) {
       isGranted = await Permission.activityRecognition.request().isGranted;
@@ -129,7 +132,7 @@ class LocationProvider with ChangeNotifier {
           .listen(_handleActivityChange);
     } else {
       logHere('⚠️ Activity Permission Denied. Defaulting to Always-On GPS.');
-      _startGpsStream(); // Fallback: Run GPS continuously
+      _startGpsStream();
     }
   }
 
@@ -257,8 +260,8 @@ class LocationProvider with ChangeNotifier {
     _adaptiveTimer?.cancel(); // NEW: Kill the timer
     _adaptiveTimer = null;
 
-    _notificationsPlugin.cancel(1);
-    _notificationsPlugin.cancel(0);
+    _notificationsPlugin.cancel(id:1);
+    _notificationsPlugin.cancel(id:0);
     if (FlutterBackground.isBackgroundExecutionEnabled) {
       FlutterBackground.disableBackgroundExecution();
     }
@@ -327,7 +330,7 @@ class LocationProvider with ChangeNotifier {
           .replaceAll('%s', rawDistanceToCenter.toStringAsFixed(0))
           .replaceAll('%r', thresholdInMeters.toStringAsFixed(0)));
 
-      _notificationsPlugin.cancel(1);
+      _notificationsPlugin.cancel(id: 1);
       return;
     }
 
@@ -363,7 +366,7 @@ class LocationProvider with ChangeNotifier {
     final details = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
-        1, target.name, '$labelDistance $formattedDistance', details);
+        id:1,title:  target.name, body:  '$labelDistance $formattedDistance', notificationDetails:  details);
   }
 
   Future<void> _triggerAlarm(LocationModel location) async {
@@ -382,7 +385,7 @@ class LocationProvider with ChangeNotifier {
 
     final details = NotificationDetails(android: androidDetails);
     await _notificationsPlugin.show(
-        0, titleWakePointAlert, '$msgYouAreNear${location.name}.', details);
+       id: 0,title:  titleWakePointAlert,body:  '$msgYouAreNear${location.name}.',notificationDetails:  details);
 
     if (_settingsProvider.useOverlayAlarmFeature) {
       const platform = MethodChannel(kMethodChannelAlarm);

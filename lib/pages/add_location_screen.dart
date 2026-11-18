@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -34,6 +33,7 @@ class AddLocationScreen extends StatefulWidget {
 class _AddLocationScreenState extends State<AddLocationScreen> {
   final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
+  final Geocoding _geocoding = Geocoding();
   LatLng? _selectedLatLng;
   String? _selectedLocationName;
   double _radius = 150;
@@ -52,14 +52,25 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
 
   Future<String> _reverseGeocode(double lat, double lng) async {
     try {
-      final placemarks = await placemarkFromCoordinates(lat, lng);
+      final placemarks = await _geocoding.placemarkFromCoordinates(lat, lng);
+
+      if (placemarks.isEmpty) {
+        return labelCurrentLocation;
+      }
+
       final placemark = placemarks.first;
-      return [
+
+      final List<String?> parts = [
         placemark.locality,
         placemark.administrativeArea,
         placemark.postalCode,
-        placemark.country
-      ].where((e) => e != null && e.isNotEmpty).join(', ');
+        placemark.country,
+      ];
+
+      return parts
+          .where((part) => part != null && part.trim().isNotEmpty)
+          .map((part) => part!.trim())
+          .join(', ');
     } catch (e) {
       logHere('Reverse geocoding failed: $e');
       return labelCurrentLocation;
@@ -177,7 +188,7 @@ class _AddLocationScreenState extends State<AddLocationScreen> {
       decoration: BoxDecoration(border: Border(bottom: borderSide)),
       child: AutoCompleteTextField(
         controller: _searchController,
-        apiKey: dotenv.env['GOOGLE_PLACES_API_KEY']!,
+        apiKey: googlePlacesApiKey,
         searchProvider: GoogleSearchProvider(),
         debounceTime: 800,
         latitude: widget.initialPosition.latitude,
