@@ -1,46 +1,87 @@
-name: Release APK on Tag
+name: Release APK on Version Change
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
+  check-version:
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.check.outputs.should_release }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d '+' -f1)
+
+          if [ -z "$VERSION" ]; then
+            echo "Could not read version from pubspec.yaml"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Check whether release already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $TAG does not exist."
+            echo "should_release=true" >> "$GITHUB_OUTPUT
+          fi
+
   build-release:
-    if: contains(github.event.head_commit.message, 'release v')
+    needs: check-version
+    if: needs.check-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
 
-      - name: 🔧 Set up Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.4'
+          channel: stable
+          cache: true
 
-      - name: 📝 Create .env file
-        run: |
-          echo "OLA_MAPS_API_KEY=${{ secrets.OLA_MAPS_API_KEY }}" > .env
-          echo "GOOGLE_PLACES_API_KEY=${{ secrets.GOOGLE_PLACES_API_KEY }}" > .env
-      
-      - name: ➕ Append Google Maps API key to local.properties
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Append Google Maps API key to local.properties
         run: |
           echo "google.maps.api.key=${{ secrets.GOOGLE_MAPS_API_KEY }}" >> android/local.properties
 
-      - name: 🔄 Get dependencies
-        run: flutter pub get
-
-      - name: 🔐 Decode keystore
+      - name: Decode keystore
         run: |
           mkdir -p android/app/keystore
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/keystore/release-key.jks
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
-      - name: 📝 Create key.properties
+      - name: Create key.properties
         run: |
           cat <<EOF > android/key.properties
           storeFile=keystore/release-key.jks
@@ -49,51 +90,62 @@ jobs:
           keyPassword=${{ secrets.KEY_PASSWORD }}
           EOF
 
-      - name: 📦 Build APKs (all architectures)
-        run: flutter build apk --split-per-abi
-
-      - name: 📦 Build Universal APK (for confused individuals)
-        run: flutter build apk --target-platform android-arm,android-arm64,android-x64 --split-debug-info=build/symbols
-
-      - name: 🔍 Get tag/version from commit message
-        id: version
+      - name: Build APKs (all supported architectures)
+        env:
+          OLA_MAPS_API_KEY: ${{ secrets.OLA_MAPS_API_KEY }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
         run: |
-          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'release v\K[0-9]+\.[0-9]+\.[0-9]+')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          flutter build apk --split-per-abi \
+            --dart-define="OLA_MAPS_API_KEY=$OLA_MAPS_API_KEY" \
+            --dart-define="GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY"
 
-      - name: 🏷️ Rename APKs to match naming convention
+      - name: Build Universal APK
+        env:
+          OLA_MAPS_API_KEY: ${{ secrets.OLA_MAPS_API_KEY }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          flutter build apk \
+            --target-platform android-arm,android-arm64,android-x64 \
+            --split-debug-info=build/symbols \
+            --dart-define="OLA_MAPS_API_KEY=$OLA_MAPS_API_KEY" \
+            --dart-define="GOOGLE_PLACES_API_KEY=$GOOGLE_PLACES_API_KEY"
+
+      - name: Rename APKs
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
           APP_NAME="wakepoint"
 
-          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk $APP_NAME-arm64-v8a-v$VERSION.apk
-          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk $APP_NAME-armeabi-v7a-v$VERSION.apk
-          mv build/app/outputs/flutter-apk/app-x86_64-release.apk $APP_NAME-x86_64-v$VERSION.apk
-          mv build/app/outputs/flutter-apk/app-x86-release.apk $APP_NAME-x86-v$VERSION.apk || true
-          mv build/app/outputs/flutter-apk/app-release.apk $APP_NAME-v$VERSION.apk
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+            "$APP_NAME-arm64-v8a-v$VERSION.apk"
 
-      - name: 📦 Install conventional-changelog-cli
+          mv build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk \
+            "$APP_NAME-armeabi-v7a-v$VERSION.apk"
+
+          mv build/app/outputs/flutter-apk/app-x86_64-release.apk \
+            "$APP_NAME-x86_64-v$VERSION.apk"
+
+          mv build/app/outputs/flutter-apk/app-release.apk \
+            "$APP_NAME-v$VERSION.apk"
+
+      - name: Install conventional-changelog
         run: npm install -g conventional-changelog-cli
 
-      - name: 📝 Generate changelog for latest tag
-        id: changelog
+      - name: Generate changelog
         run: |
-          CHANGELOG=$(conventional-changelog -p angular -r 1)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          conventional-changelog -p angular -r 1 > RELEASE_NOTES.md
 
-      - name: 🚀 Create GitHub Release
-        uses: softprops/action-gh-release@v1
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Changes in v${{ needs.check-version.outputs.version }}" > RELEASE_NOTES.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          tag_name: v${{ needs.check-version.outputs.version }}
+          name: v${{ needs.check-version.outputs.version }}
+          body_path: RELEASE_NOTES.md
           files: |
-            wakepoint-arm64-v8a-v${{ steps.version.outputs.version }}.apk
-            wakepoint-armeabi-v7a-v${{ steps.version.outputs.version }}.apk
-            wakepoint-x86_64-v${{ steps.version.outputs.version }}.apk
-            wakepoint-x86-v${{ steps.version.outputs.version }}.apk
-            wakepoint-v${{ steps.version.outputs.version }}.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+            wakepoint-arm64-v8a-v${{ needs.check-version.outputs.version }}.apk
+            wakepoint-armeabi-v7a-v${{ needs.check-version.outputs.version }}.apk
+            wakepoint-x86_64-v${{ needs.check-version.outputs.version }}.apk
+            wakepoint-v${{ needs.check-version.outputs.version }}.apk
