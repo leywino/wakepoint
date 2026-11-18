@@ -31,13 +31,17 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.leywin.wakepoint"
-    compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    compileSdk = 37
+    ndkVersion = "28.2.13676358"
+
+    buildFeatures {
+        resValues true
+    }
 
     compileOptions {
         coreLibraryDesugaringEnabled true
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
@@ -65,10 +69,14 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
     }
     
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
 }
 
