@@ -47,7 +47,7 @@ jobs:
             echo "should_release=false" >> "$GITHUB_OUTPUT"
           else
             echo "Release $TAG does not exist."
-            echo "should_release=true" >> "$GITHUB_OUTPUT
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
           fi
 
   build-release:
