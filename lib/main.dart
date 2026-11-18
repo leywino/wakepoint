@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
-import 'package:geolocator/geolocator.dart'; // Import this
-import 'package:permission_handler/permission_handler.dart'; // Import this
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/config/constants.dart';
@@ -14,14 +14,14 @@ import 'package:wakepoint/services/location_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FlutterDisplayMode
-      .setHighRefreshRate(); // Await this for smoother start
+      .setHighRefreshRate();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  /// Loads Prefs AND Checks Permissions
+  // Loads Prefs AND Checks Permissions
   Future<Map<String, dynamic>> _initApp() async {
     // 1. Load Preferences
     final prefs = await SharedPreferences.getInstance();
@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
     // Notification
     final hasNotification = await Permission.notification.isGranted;
 
-    // Activity (Since you added it as mandatory)
+    // Activity
     final hasActivity = await Permission.activityRecognition.isGranted;
 
     final allGranted = hasLocation && hasNotification && hasActivity;

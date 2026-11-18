@@ -27,7 +27,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     _checkPermissions();
   }
 
-  /// Check all permissions on screen load
+  // Check all permissions on screen load
   Future<void> _checkPermissions() async {
     _locationGranted =
         await Geolocator.checkPermission() == LocationPermission.always;
@@ -38,7 +38,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     setState(() {});
   }
 
-  /// Request Location Permission using Geolocator
+  // Request Location Permission using Geolocator
   Future<void> _requestLocationPermission() async {
     final permission = await Geolocator.checkPermission();
 
@@ -68,7 +68,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// Request Notification Permission
+  // Request Notification Permission
   Future<void> _requestNotificationPermission() async {
     final status = await Permission.notification.request();
     if (status.isGranted) {
@@ -78,7 +78,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// Request Battery Optimization Permission
+  // Request Battery Optimization Permission
   Future<void> _requestBatteryPermission() async {
     final status = await Permission.ignoreBatteryOptimizations.request();
     if (status.isGranted) {
@@ -88,7 +88,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// Request Overlay Permission
+  // Request Overlay Permission
   Future<void> _requestOverlayPermission() async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -112,7 +112,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     }
   }
 
-  /// Dialog for opening App Settings when permission is permanently denied
+  // Dialog for opening App Settings when permission is permanently denied
   void _openAppSettingsDialog(String permissionName) {
     showDialog(
       context: context,
@@ -142,7 +142,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// Save first launch & navigate to home screen
+  // Save first launch & navigate to home screen
   Future<void> _completeSetup() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('first_launch_completed', true);
@@ -290,7 +290,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// Helper to build the header with icon and title
+  // Helper to build the header with icon and title
   Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +312,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// Helper to build the descriptive text
+  // Helper to build the descriptive text
   Widget _buildDescription(BuildContext context) {
     return Text(
       msgGrantPermissions,
@@ -322,7 +322,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// Helper to build a section of permissions (e.g., Required or Optional)
+  // Helper to build a section of permissions (e.g., Required or Optional)
   Widget _buildPermissionSection(BuildContext context,
       {required String title, required List<Widget> permissions}) {
     return Card(
@@ -348,7 +348,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     );
   }
 
-  /// Helper to build the "Get Started" button
+  // Helper to build the "Get Started" button
   Widget _buildGetStartedButton(bool isMandatoryGranted) {
     return ElevatedButton(
       onPressed: isMandatoryGranted ? _completeSetup : null,

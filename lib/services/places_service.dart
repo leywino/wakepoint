@@ -12,7 +12,7 @@ void logHere(String message) => log(message, tag: _logTag);
 class PlacesService {
   final Dio _dio = Dio();
 
-  /// LOW-LEVEL (optional): raw Ola response
+  // LOW-LEVEL (optional): raw Ola response
   Future<Predictions?> fetchOlaRaw({
     required String apiKey,
     required String query,
@@ -39,7 +39,7 @@ class PlacesService {
     }
   }
 
-  /// HIGH-LEVEL: what your app should actually use
+  // HIGH-LEVEL: what your app should actually use
   Future<List<OlaPlace>> fetchOlaPlaces({
     required String apiKey,
     required String query,

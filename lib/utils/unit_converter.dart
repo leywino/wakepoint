@@ -11,7 +11,7 @@ class UnitConverter {
   static const double _metersPerMile = 1609.34;
   static const double _kmPerMile = 1.60934;
 
-  /// Helper method to format distance (e.g., alarm radius) which is stored in meters
+  // Helper method to format distance (e.g., alarm radius) which is stored in meters
   static String formatDistanceForDisplay(double meters, UnitSystem unitSystem) {
     if (unitSystem == UnitSystem.imperial) {
       // Convert meters to feet, yards, or miles
@@ -34,7 +34,7 @@ class UnitConverter {
     }
   }
 
-  /// Helper method to format threshold distance (stored in kilometers)
+  // Helper method to format threshold distance (stored in kilometers)
   static String formatThresholdForDisplay(
       double kilometers, UnitSystem unitSystem) {
     if (unitSystem == UnitSystem.imperial) {
@@ -45,7 +45,7 @@ class UnitConverter {
     }
   }
 
-  /// Helper method to get the list of unit system labels for UI dropdowns
+  // Helper method to get the list of unit system labels for UI dropdowns
   static List<String> getUnitSystemLabels() {
     return UnitSystem.values.map((system) {
       switch (system) {
@@ -57,7 +57,7 @@ class UnitConverter {
     }).toList();
   }
 
-  /// Helper method to convert a string label back to UnitSystem enum
+  // Helper method to convert a string label back to UnitSystem enum
   static UnitSystem getUnitSystemFromString(String label) {
     switch (label) {
       case labelMetric:

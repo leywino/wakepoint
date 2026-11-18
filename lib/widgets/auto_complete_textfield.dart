@@ -17,10 +17,10 @@ class AutoCompleteTextField extends StatefulWidget {
   final TextStyle textStyle;
   final PlacesSearchProvider searchProvider;
 
-  /// Called when a place is selected
+  // Called when a place is selected
   final void Function(Place place)? onPlaceSelected;
 
-  /// Called when user enters raw lat,lng or plus code
+  // Called when user enters raw lat,lng or plus code
   final void Function(double lat, double lng)? onManualLatLngDetected;
 
   final double? latitude;
@@ -68,9 +68,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
         .listen(_onSearchChanged);
   }
 
-  // -----------------------------
   // INPUT HANDLERS
-  // -----------------------------
 
   bool _handleLatLngInput(String query) {
     final cleaned = query.replaceAll(RegExp(r'[()\s]'), '');
@@ -107,9 +105,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     }
   }
 
-  // -----------------------------
   // PLACES FETCH
-  // -----------------------------
 
   Future<void> _handlePlacePrediction(String query) async {
     _cancelToken?.cancel();
@@ -151,9 +147,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     setState(() => _isLoading = false);
   }
 
-  // -----------------------------
   // OVERLAY
-  // -----------------------------
 
   void _showOverlay() {
     _overlayEntry?.remove();
@@ -219,9 +213,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     );
   }
 
-  // -----------------------------
   // LIFECYCLE
-  // -----------------------------
 
   void clearData() {
     widget.controller.clear();
@@ -237,9 +229,7 @@ class _AutoCompleteTextFieldState extends State<AutoCompleteTextField> {
     super.dispose();
   }
 
-  // -----------------------------
   // UI
-  // -----------------------------
 
   @override
   Widget build(BuildContext context) {

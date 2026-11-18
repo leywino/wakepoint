@@ -88,7 +88,7 @@ class _AlarmScreenState extends State<AlarmScreen>
               ),
               const SizedBox(height: 30),
               Text(
-                'Wake up! You’re near your stop!',
+                msgWakeUpNearStop,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 20),
