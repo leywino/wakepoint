@@ -112,13 +112,13 @@ const String labelMetric = 'Metric (meters, kilometers)';
 const String labelImperial = 'Imperial (yards, miles)';
 
 //  Tracking Configuration
-const String labelTrackingRadius = 'Approach Notification Range';
+const String labelTrackingRadius = 'Alert distance';
 const String labelSelectRadius = 'Select Alarm Radius';
 const String labelMeters = 'meters';
 const String labelVibration = 'Vibration';
 const String labelUseOverlayAlarm = 'Use Overlay Alarm';
 const String msgOverlayRequired =
-    'Overlay permission is required for this feature';
+    'Show the alarm over other apps and the lock screen.';
 
 //  Accuracy
 const String labelTrackingAccuracy = 'Tracking Accuracy';
@@ -128,15 +128,15 @@ const String valBatterySaving = 'Battery Saving';
 String msgInvalidAccuracy(String value) => 'Invalid accuracy value: $value';
 
 //  Notification Settings
-const String labelNotifyWhenNearby = 'Notify Only When Nearby';
+const String labelNotifyWhenNearby = 'Approach alert';
 const String labelNotificationRadius = 'Notification Range';
 const String descNotifyWhenNearby =
-    "Enable to receive alerts only when you're close to your destination.";
+    'Receive a notification before you reach your destination.';
 const String descNotificationRadius =
-    'Send an approaching notification when you enter this distance from your stop.';
-const String labelPersistentNotification = 'Persistent Notification';
+    'How far from your destination the approach notification is triggered.';
+const String labelPersistentNotification = 'Ongoing trip notification';
 const String descEnablePersistent =
-    'Keep a trip status notification visible while destination monitoring is active.';
+    'Show a notification while WakePoint is monitoring your destination.';
 const String msgOverlayNeededForAlerts =
     'Required to show alerts over the lock screen.';
 const String msgBatteryNeededForPersistence =

@@ -12,14 +12,29 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
   bool _overlayGranted = false;
   bool _batteryGranted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermissions();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _checkPermissions() async {
@@ -179,16 +194,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildTrackingSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
-        const ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.radar_rounded),
-          title: Text('Destination geofence'),
-          subtitle: Text(
-              'Android monitors the saved area in the background and wakes WakePoint when you enter it.'),
-        ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          secondary: const Icon(Icons.notifications_active),
+          secondary: const Icon(Icons.notifications_active_outlined),
           title: const Text(labelNotifyWhenNearby),
           subtitle: const Text(descNotifyWhenNearby),
           value: settingsProvider.isNotificationThresholdEnabled,
@@ -198,16 +206,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.social_distance),
+          leading: const Icon(Icons.radar_rounded),
           title: const Text(labelTrackingRadius),
-          subtitle: const Text(descNotificationRadius),
           trailing: DropdownButton<double>(
             value: settingsProvider.notificationDistanceThresholdKm,
-            items: kcDistanceNumberList.map((e) {
+            items: kcDistanceNumberList.map((distance) {
               return DropdownMenuItem<double>(
-                value: e,
-                child: Text(UnitConverter.formatThresholdForDisplay(
-                    e, settingsProvider.preferredUnitSystem)),
+                value: distance,
+                child: Text(
+                  UnitConverter.formatThresholdForDisplay(
+                    distance,
+                    settingsProvider.preferredUnitSystem,
+                  ),
+                ),
               );
             }).toList(),
             onChanged: settingsProvider.isNotificationThresholdEnabled
@@ -373,43 +384,42 @@ class _AlarmSettingsSection extends StatelessWidget {
   Widget _buildAlarmDurationDropdownRow() {
     final isDisabled = !settingsProvider.useOverlayAlarmFeature;
 
-    return Row(
-      children: [
-        const Icon(Icons.timer),
-        const SizedBox(width: s12),
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            decoration: const InputDecoration(
-              labelText: labelAlarmDuration,
-              isDense: true,
-              contentPadding:
-                  EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              border: UnderlineInputBorder(),
-            ),
-            initialValue: settingsProvider.alarmPlaybackDurationSeconds,
-            items: const [
-              DropdownMenuItem(
-                  value: alarmDurationDismissed,
-                  child: Text(alarmDurationLabelDismissed)),
-              DropdownMenuItem(
-                  value: alarmDuration15s, child: Text(alarmDurationLabel15s)),
-              DropdownMenuItem(
-                  value: alarmDuration30s, child: Text(alarmDurationLabel30s)),
-              DropdownMenuItem(
-                  value: alarmDuration60s, child: Text(alarmDurationLabel60s)),
-              DropdownMenuItem(
-                  value: alarmDuration90s, child: Text(alarmDurationLabel90s)),
-            ],
-            onChanged: isDisabled
-                ? null
-                : (value) {
-                    if (value != null) {
-                      settingsProvider.alarmPlaybackDurationSeconds = value;
-                    }
-                  },
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.timer_outlined),
+      title: const Text(labelAlarmDuration),
+      trailing: DropdownButton<int>(
+        value: settingsProvider.alarmPlaybackDurationSeconds,
+        items: const [
+          DropdownMenuItem(
+            value: alarmDurationDismissed,
+            child: Text(alarmDurationLabelDismissed),
           ),
-        ),
-      ],
+          DropdownMenuItem(
+            value: alarmDuration15s,
+            child: Text(alarmDurationLabel15s),
+          ),
+          DropdownMenuItem(
+            value: alarmDuration30s,
+            child: Text(alarmDurationLabel30s),
+          ),
+          DropdownMenuItem(
+            value: alarmDuration60s,
+            child: Text(alarmDurationLabel60s),
+          ),
+          DropdownMenuItem(
+            value: alarmDuration90s,
+            child: Text(alarmDurationLabel90s),
+          ),
+        ],
+        onChanged: isDisabled
+            ? null
+            : (value) {
+                if (value != null) {
+                  settingsProvider.alarmPlaybackDurationSeconds = value;
+                }
+              },
+      ),
     );
   }
 
