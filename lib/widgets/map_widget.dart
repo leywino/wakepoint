@@ -49,7 +49,8 @@ class _MapWidgetState extends State<MapWidget> {
   }
 
   void _init() {
-    _radius = widget.radius ?? 150;
+    final configuredRadius = widget.radius ?? 150;
+    _radius = configuredRadius < 100 ? 100 : configuredRadius;
     _currentZoom = _calculateZoomLevel(_radius);
   }
 

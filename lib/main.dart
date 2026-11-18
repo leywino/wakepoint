@@ -28,16 +28,12 @@ class MyApp extends StatelessWidget {
     // 2. Check Permissions Directly
     // Location
     final locStatus = await Geolocator.checkPermission();
-    final hasLocation = locStatus == LocationPermission.always ||
-        locStatus == LocationPermission.whileInUse;
+    final hasLocation = locStatus == LocationPermission.always;
 
     // Notification
     final hasNotification = await Permission.notification.isGranted;
 
-    // Activity
-    final hasActivity = await Permission.activityRecognition.isGranted;
-
-    final allGranted = hasLocation && hasNotification && hasActivity;
+    final allGranted = hasLocation && hasNotification;
 
     return {
       'prefs': prefs,

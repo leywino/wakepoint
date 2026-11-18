@@ -1,18 +1,15 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
-import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:geolocator/geolocator.dart' hide AndroidResource, ActivityType;
+import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakepoint/config/constants.dart';
 import 'package:wakepoint/controller/settings_provider.dart';
 import 'package:wakepoint/models/location_model.dart';
+import 'package:wakepoint/services/geofence_service.dart';
 import 'package:wakepoint/services/location_service.dart';
 import 'package:wakepoint/utils/utils.dart';
 
@@ -22,6 +19,7 @@ void logHere(String message) => log(message, tag: _logTag);
 class LocationProvider with ChangeNotifier {
   final SettingsProvider _settingsProvider;
   final LocationService _locationService;
+  final GeofenceService _geofenceService = GeofenceService();
 
   List<LocationModel> _locations = [];
   int? _selectedLocationIndex;
@@ -29,168 +27,90 @@ class LocationProvider with ChangeNotifier {
   bool _alarmTriggered = false;
   String? currentSelectedLocation;
   VoidCallback? onAlarmTriggered;
-  StreamSubscription<Activity>? _activitySubscription;
-  bool _isGpsActive = false;
-  Timer? _adaptiveTimer;
-  static const double kAdaptiveThreshold = 10000;
+  LocationModel? _pendingArrivalLocation;
+  late bool _lastThresholdEnabled;
+  late double _lastThresholdKm;
+  late bool _lastPersistentNotification;
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
+  late final Future<void> _notificationsReady;
 
   LocationProvider(this._settingsProvider, this._locationService) {
-    _initNotifications();
+    _lastThresholdEnabled = _settingsProvider.isNotificationThresholdEnabled;
+    _lastThresholdKm = _settingsProvider.notificationDistanceThresholdKm;
+    _lastPersistentNotification =
+        _settingsProvider.enablePersistentNotification;
+    _settingsProvider.addListener(_onSettingsChanged);
+    _notificationsReady = _initNotifications();
+    _geofenceService.setEventHandler(_handleGeofenceEvent);
     _loadLocations();
   }
 
   List<LocationModel> get locations => _locations;
   int? get selectedLocationIndex => _selectedLocationIndex;
   bool get isTracking => _isTracking;
-  Position? get currentPosition => _locationService.currentPosition;
+  // Geofencing deliberately avoids continuous fixes, so don't show a stale
+  // distance from the point where the trip was started.
+  Position? get currentPosition =>
+      _isTracking ? null : _locationService.currentPosition;
   bool _isInitializingTracking = false;
   bool get isInitializingTracking => _isInitializingTracking;
 
-  void _initNotifications() {
+  Future<void> _registerGeofence(LocationModel target) {
+    final radius = target.radius < 100 ? 100.0 : target.radius;
+    final approachRadius = _settingsProvider.isNotificationThresholdEnabled
+        ? _settingsProvider.notificationDistanceThresholdKm * 1000 + radius
+        : 0.0;
+    return _geofenceService.register(
+      tripId: target.createdAt!.toIso8601String(),
+      name: target.name,
+      latitude: target.latitude,
+      longitude: target.longitude,
+      arrivalRadiusMeters: radius,
+      approachRadiusMeters: approachRadius,
+    );
+  }
+
+  void _onSettingsChanged() {
+    final enabled = _settingsProvider.isNotificationThresholdEnabled;
+    final thresholdKm = _settingsProvider.notificationDistanceThresholdKm;
+    final persistentNotification =
+        _settingsProvider.enablePersistentNotification;
+    final thresholdChanged =
+        enabled != _lastThresholdEnabled || thresholdKm != _lastThresholdKm;
+    final persistentChanged =
+        persistentNotification != _lastPersistentNotification;
+    _lastThresholdEnabled = enabled;
+    _lastThresholdKm = thresholdKm;
+    _lastPersistentNotification = persistentNotification;
+    final index = _selectedLocationIndex;
+    if (!_isTracking || index == null || index >= _locations.length) return;
+    if (thresholdChanged) {
+      _registerGeofence(_locations[index]).catchError((error) {
+        logHere('Unable to update the approach geofence: $error');
+      });
+    }
+    if (persistentChanged) {
+      if (persistentNotification) {
+        _showTrackingNotification(_locations[index]);
+      } else {
+        _notificationsPlugin.cancel(id: 1);
+      }
+    }
+  }
+
+  Future<void> _initNotifications() async {
     const androidSettings =
         AndroidInitializationSettings('ic_stat_notification');
     const settings = InitializationSettings(android: androidSettings);
 
-    _notificationsPlugin.initialize(
+    await _notificationsPlugin.initialize(
       settings: settings,
       onDidReceiveNotificationResponse: (response) {
         if (response.actionId == 'STOP_TRACKING') stopTracking();
       },
     );
-  }
-
-  Future<void> _decideTrackingMode() async {
-    if (_selectedLocationIndex == null || !_isTracking) return;
-
-    try {
-      final position = await _locationService.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
-      );
-
-      final target = _locations[_selectedLocationIndex!];
-
-      final distance = _locationService.calculateDistance(
-        position.latitude,
-        position.longitude,
-        target.latitude,
-        target.longitude,
-      );
-
-      logHere(
-        '📍 Check: ${(distance / 1000).toStringAsFixed(1)}km away. '
-        'Speed: ${(position.speed).toStringAsFixed(1)} m/s',
-      );
-
-      if (distance <= kAdaptiveThreshold) {
-        logHere(
-            '🎯 Within ${(kAdaptiveThreshold / 1000).toStringAsFixed(0)}km. '
-            'Switching to continuous GPS.');
-
-        _adaptiveTimer?.cancel();
-        _adaptiveTimer = null;
-
-        if (!_isGpsActive) {
-          _startGpsStream();
-        }
-
-        return;
-      }
-
-      if (_isGpsActive) {
-        _stopGpsStream();
-      }
-
-      final int nextCheckSeconds;
-
-      if (distance > 50000) {
-        nextCheckSeconds = 300; // 5 minutes
-      } else if (distance > 25000) {
-        nextCheckSeconds = 180; // 3 minutes
-      } else {
-        nextCheckSeconds = 60; // 1 minute
-      }
-
-      logHere(
-        '⏳ Target far. Next check in '
-        '${(nextCheckSeconds / 60).toStringAsFixed(0)} min.',
-      );
-
-      _adaptiveTimer?.cancel();
-
-      _adaptiveTimer = Timer(
-        Duration(seconds: nextCheckSeconds),
-        _decideTrackingMode,
-      );
-    } catch (e) {
-      logHere('⚠️ Adaptive tracking check failed: $e');
-
-      _adaptiveTimer?.cancel();
-      _adaptiveTimer = Timer(
-        const Duration(seconds: 60),
-        _decideTrackingMode,
-      );
-    }
-  }
-
-  Future<void> _initActivityRecognition() async {
-    await _activitySubscription?.cancel();
-    _activitySubscription = null;
-
-    bool isGranted = await Permission.activityRecognition.isGranted;
-    if (!isGranted) {
-      isGranted = await Permission.activityRecognition.request().isGranted;
-    }
-
-    if (isGranted) {
-      logHere('🏃 Activity Permission Granted. Listening for movement...');
-      _activitySubscription = FlutterActivityRecognition.instance.activityStream
-          .listen(_handleActivityChange);
-    } else {
-      logHere('⚠️ Activity Permission Denied. Defaulting to Always-On GPS.');
-      _startGpsStream();
-    }
-  }
-
-  void _handleActivityChange(Activity activity) {
-    logHere('Detected Activity: ${activity.type}');
-
-    if (activity.type == ActivityType.STILL) {
-      logHere('💤 Still. Pausing all location checks.');
-      _stopGpsStream();
-      _adaptiveTimer?.cancel();
-    } else {
-      if (!_isGpsActive &&
-          (_adaptiveTimer == null || !_adaptiveTimer!.isActive)) {
-        logHere('🚗 Moving. Calculating best tracking mode...');
-        _decideTrackingMode();
-      }
-    }
-  }
-
-  void _startGpsStream() {
-    if (_selectedLocationIndex == null || _isGpsActive) return;
-
-    final target = _locations[_selectedLocationIndex!];
-    _isGpsActive = true;
-
-    _locationService.startListening(
-      accuracy:
-          locationAccuracyOptions[_settingsProvider.locationTrackingAccuracy],
-      distanceFilter: 20,
-      onUpdate: (position) {
-        _sendRealtimeUpdate(position, target);
-        _checkProximity(position, target, target.radius);
-        notifyListeners();
-      },
-    );
-  }
-
-  void _stopGpsStream() {
-    _locationService.stopListening();
-    _isGpsActive = false;
   }
 
   Future<void> _loadLocations() async {
@@ -203,12 +123,42 @@ class LocationProvider with ChangeNotifier {
           .toList();
       notifyListeners();
     }
+    final activeTripId = prefs.getString('active_trip_created_at');
+    if (activeTripId != null) {
+      final activeIndex = _locations.indexWhere(
+        (location) => location.createdAt?.toIso8601String() == activeTripId,
+      );
+      if (activeIndex >= 0) {
+        _selectedLocationIndex = activeIndex;
+        _isTracking = true;
+        final target = _locations[activeIndex];
+        try {
+          await _registerGeofence(target);
+          await _showTrackingNotification(target);
+        } catch (error) {
+          logHere('Unable to restore destination geofence: $error');
+          try {
+            await _geofenceService.remove();
+          } catch (removeError) {
+            logHere('Unable to clear restored geofence: $removeError');
+          }
+          _isTracking = false;
+          _selectedLocationIndex = null;
+          await prefs.remove('active_trip_created_at');
+        }
+        notifyListeners();
+      } else {
+        await prefs.remove('active_trip_created_at');
+      }
+    }
+    final pendingEvent = await _geofenceService.consumePendingEvent();
+    if (pendingEvent != null) await _handleGeofenceEvent(pendingEvent);
   }
 
   Future<void> _saveLocations() async {
     final prefs = await SharedPreferences.getInstance();
     final encoded = jsonEncode(_locations.map((e) => e.toJson()).toList());
-    prefs.setString('saved_locations', encoded);
+    await prefs.setString('saved_locations', encoded);
   }
 
   void addLocation(LocationModel location) {
@@ -260,15 +210,16 @@ class LocationProvider with ChangeNotifier {
   }
 
   Future<void> toggleTracking() async {
-    if (_isTracking || _isInitializingTracking) {
-      stopTracking();
+    if (_isTracking) {
+      await stopTracking();
       return;
     }
+    if (_isInitializingTracking) return;
     if (_selectedLocationIndex == null) return;
     _isInitializingTracking = true;
     notifyListeners();
     final started = await _startTracking();
-    if (!started) {
+    if (!started || !_isInitializingTracking) {
       _isInitializingTracking = false;
       _isTracking = false;
       notifyListeners();
@@ -276,42 +227,63 @@ class LocationProvider with ChangeNotifier {
     }
     _isTracking = true;
     _isInitializingTracking = false;
-    await _startForegroundService();
+    final prefs = await SharedPreferences.getInstance();
+    final target = _locations[_selectedLocationIndex!];
+    target.createdAt ??= DateTime.now();
+    await _saveLocations();
+    await prefs.setString(
+      'active_trip_created_at',
+      target.createdAt!.toIso8601String(),
+    );
+    await _showTrackingNotification(target);
     notifyListeners();
   }
 
-  Future<void> _startForegroundService() async {
-    const config = FlutterBackgroundAndroidConfig(
-        notificationTitle: appName,
-        notificationText: kNotificationTrackingText,
-        notificationImportance: AndroidNotificationImportance.normal,
-        enableWifiLock: true,
-        notificationIcon:
-            AndroidResource(name: 'ic_stat_notification', defType: 'drawable'));
-    if (await FlutterBackground.initialize(androidConfig: config)) {
-      FlutterBackground.enableBackgroundExecution();
-    }
+  Future<void> _showTrackingNotification(LocationModel target) async {
+    if (!_settingsProvider.enablePersistentNotification) return;
+    await _notificationsReady;
+    final androidDetails = AndroidNotificationDetails(
+      kNotificationTrackingChannelId,
+      'Trip monitoring',
+      importance: Importance.low,
+      priority: Priority.low,
+      ongoing: true,
+      autoCancel: false,
+      showWhen: false,
+      icon: 'ic_stat_notification',
+      onlyAlertOnce: true,
+      actions: [
+        const AndroidNotificationAction(
+          'STOP_TRACKING',
+          'Stop trip',
+          showsUserInterface: true,
+        ),
+      ],
+    );
+    await _notificationsPlugin.show(
+      id: 1,
+      title: 'Monitoring ${target.name}',
+      body: 'WakePoint will alert you as you approach your destination.',
+      notificationDetails: NotificationDetails(android: androidDetails),
+    );
   }
 
-  void stopTracking() {
-    _activitySubscription?.cancel();
-    _activitySubscription = null;
-
-    _stopGpsStream();
-    _adaptiveTimer?.cancel(); // NEW: Kill the timer
-    _adaptiveTimer = null;
-
-    _notificationsPlugin.cancel(id: 1);
-    _notificationsPlugin.cancel(id: 0);
-    if (FlutterBackground.isBackgroundExecutionEnabled) {
-      FlutterBackground.disableBackgroundExecution();
-    }
-
+  Future<void> stopTracking() async {
     _alarmTriggered = false;
     _isTracking = false;
     _isInitializingTracking = false;
-
     notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('active_trip_created_at');
+    try {
+      await _geofenceService.remove();
+    } catch (error) {
+      logHere('Unable to remove destination geofence: $error');
+    }
+    await _notificationsReady;
+    await _notificationsPlugin.cancel(id: 1);
+    await _notificationsPlugin.cancel(id: 0);
   }
 
   Future<bool> _startTracking() async {
@@ -323,6 +295,7 @@ class LocationProvider with ChangeNotifier {
       );
 
       final target = _locations[_selectedLocationIndex!];
+      target.createdAt ??= DateTime.now();
 
       final distance = _locationService.calculateDistance(
         position.latitude,
@@ -331,133 +304,82 @@ class LocationProvider with ChangeNotifier {
         target.longitude,
       );
 
-      if (distance <= target.radius) {
+      final effectiveRadius = target.radius < 100 ? 100.0 : target.radius;
+      if (distance <= effectiveRadius) {
         logHere(
-            '🚫 Already inside radius (${distance.toStringAsFixed(0)}m <= ${target.radius}m). Blocking start.');
+            'Already inside geofence radius (${distance.toStringAsFixed(0)}m <= ${effectiveRadius.toStringAsFixed(0)}m). Blocking start.');
         Fluttertoast.showToast(msg: msgAlreadyWithinRadius);
         return false;
       }
 
-      await _initActivityRecognition();
-      _isTracking = true;
-      await _decideTrackingMode();
-      // _startGpsStream();
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always) {
+        final backgroundPermission = await Permission.locationAlways.request();
+        if (!backgroundPermission.isGranted) {
+          Fluttertoast.showToast(
+            msg: 'Allow background location to monitor your trip.',
+          );
+          return false;
+        }
+      }
+
+      await _registerGeofence(target);
 
       return true;
     } catch (e) {
       logHere('$kLogInitialPositionFailed $e');
-      Fluttertoast.showToast(msg: msgLocationNotVerified);
+      Fluttertoast.showToast(msg: 'Could not start destination monitoring.');
       return false;
     }
   }
 
   void setAlarmCallback(VoidCallback callback) {
     onAlarmTriggered = callback;
+    final pending = _pendingArrivalLocation;
+    if (pending != null) {
+      _pendingArrivalLocation = null;
+      _triggerAlarm(pending);
+    }
   }
 
-  Future<void> _sendRealtimeUpdate(
-      Position position, LocationModel target) async {
-    final rawDistanceToCenter = _locationService.calculateDistance(
-      position.latitude,
-      position.longitude,
-      target.latitude,
-      target.longitude,
-    );
+  @override
+  void dispose() {
+    _settingsProvider.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
 
-    final thresholdInMeters =
-        _settingsProvider.notificationDistanceThresholdKm * 1000 +
-            target.radius;
-
-    if (_settingsProvider.isNotificationThresholdEnabled &&
-        rawDistanceToCenter > thresholdInMeters) {
-      logHere(kLogDistanceAboveThreshold
-          .replaceAll('%s', rawDistanceToCenter.toStringAsFixed(0))
-          .replaceAll('%r', thresholdInMeters.toStringAsFixed(0)));
-
-      _notificationsPlugin.cancel(id: 1);
+  Future<void> _handleGeofenceEvent(Map<String, dynamic> event) async {
+    if (event['type'] != 'arrival') return;
+    final tripId = event['tripId']?.toString();
+    final name = event['name']?.toString();
+    LocationModel? target;
+    for (final location in _locations) {
+      if ((tripId != null && location.createdAt?.toIso8601String() == tripId) ||
+          (tripId == null && location.name == name)) {
+        target = location;
+        break;
+      }
+    }
+    if (target == null &&
+        _selectedLocationIndex != null &&
+        _selectedLocationIndex! < _locations.length) {
+      target = _locations[_selectedLocationIndex!];
+    }
+    if (target == null) {
+      logHere('Received destination arrival without a saved destination.');
       return;
     }
-
-    double distanceToEdge = rawDistanceToCenter - target.radius;
-    if (distanceToEdge < 0) distanceToEdge = 0;
-
-    final formattedDistance = UnitConverter.formatDistanceForDisplay(
-      distanceToEdge,
-      _settingsProvider.preferredUnitSystem,
-    );
-
-    if (!FlutterBackground.isBackgroundExecutionEnabled) return;
-
-    final androidDetails = AndroidNotificationDetails(
-      kNotificationTrackingChannelId,
-      target.name,
-      importance: Importance.high,
-      priority: Priority.high,
-      ongoing: true,
-      autoCancel: false,
-      showWhen: false,
-      icon: 'ic_stat_notification',
-      onlyAlertOnce: true,
-      actions: [
-        const AndroidNotificationAction(
-          'STOP_TRACKING',
-          btnDismissAlarm,
-          showsUserInterface: true,
-        ),
-      ],
-    );
-
-    final details = NotificationDetails(android: androidDetails);
-
-    await _notificationsPlugin.show(
-        id: 1,
-        title: target.name,
-        body: '$labelDistance $formattedDistance',
-        notificationDetails: details);
+    if (onAlarmTriggered == null) {
+      _pendingArrivalLocation = target;
+      return;
+    }
+    _triggerAlarm(target);
   }
 
-  Future<void> _triggerAlarm(LocationModel location) async {
+  void _triggerAlarm(LocationModel location) {
     if (_alarmTriggered) return;
     _alarmTriggered = true;
     currentSelectedLocation = location.name;
-
-    final androidDetails = AndroidNotificationDetails(
-        kNotificationAlarmChannelId, '$kReachedLocationPrefix${location.name}',
-        importance: Importance.max,
-        priority: Priority.high,
-        fullScreenIntent: true,
-        playSound: true,
-        autoCancel: true,
-        icon: 'ic_stat_notification');
-
-    final details = NotificationDetails(android: androidDetails);
-    await _notificationsPlugin.show(
-        id: 0,
-        title: titleWakePointAlert,
-        body: '$msgYouAreNear${location.name}.',
-        notificationDetails: details);
-
-    if (_settingsProvider.useOverlayAlarmFeature) {
-      const platform = MethodChannel(kMethodChannelAlarm);
-      try {
-        await platform.invokeMethod('startAlarm');
-      } catch (e) {
-        logHere('$kLogOverlayAlarmFailed $e');
-      }
-    }
-
     onAlarmTriggered?.call();
-  }
-
-  void _checkProximity(Position position, LocationModel target, double radius) {
-    final distance = _locationService.calculateDistance(
-      position.latitude,
-      position.longitude,
-      target.latitude,
-      target.longitude,
-    );
-    if (distance <= radius && !_alarmTriggered) {
-      _triggerAlarm(target);
-    }
   }
 }

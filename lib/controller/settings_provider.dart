@@ -1,16 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppTheme { system, light, dark }
 
 enum UnitSystem { metric, imperial }
-
-List<LocationAccuracy> locationAccuracyOptions = [
-  LocationAccuracy.best,
-  LocationAccuracy.medium,
-  LocationAccuracy.low,
-];
 
 enum AlarmSoundType { ringtone, alarm }
 
@@ -26,15 +19,6 @@ class SettingsProvider with ChangeNotifier {
 
   set theme(AppTheme t) {
     _prefs?.setInt('app_theme', t.index);
-    notifyListeners();
-  }
-
-  int get locationTrackingAccuracy {
-    return _prefs?.getInt('location_tracking_accuracy') ?? 0;
-  }
-
-  set locationTrackingAccuracy(int i) {
-    _prefs?.setInt('location_tracking_accuracy', i);
     notifyListeners();
   }
 

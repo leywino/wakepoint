@@ -179,14 +179,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildTrackingSettings(SettingsProvider settingsProvider) {
     return Column(
       children: [
-        SettingsDropdownTile(
-          title: labelTrackingAccuracy,
-          value: _getTrackingAccuracyLabel(
-              settingsProvider.locationTrackingAccuracy),
-          options: [valHighAccuracy, valBalanced, valBatterySaving],
-          onChanged: (value) => settingsProvider.locationTrackingAccuracy =
-              _getTrackingAccuracyFromString(value!),
-          icon: Icons.location_searching,
+        const ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(Icons.radar_rounded),
+          title: Text('Destination geofence'),
+          subtitle: Text(
+              'Android monitors the saved area in the background and wakes WakePoint when you enter it.'),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -275,32 +273,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
       ],
     );
-  }
-
-  String _getTrackingAccuracyLabel(int trackingAccuracy) {
-    switch (trackingAccuracy) {
-      case 0:
-        return valHighAccuracy;
-      case 1:
-        return valBalanced;
-      case 2:
-        return valBatterySaving;
-      default:
-        throw ArgumentError(msgInvalidAccuracy(trackingAccuracy.toString()));
-    }
-  }
-
-  int _getTrackingAccuracyFromString(String accuracy) {
-    switch (accuracy) {
-      case valHighAccuracy:
-        return 0;
-      case valBalanced:
-        return 1;
-      case valBatterySaving:
-        return 2;
-      default:
-        throw ArgumentError(msgInvalidAccuracy(accuracy));
-    }
   }
 }
 

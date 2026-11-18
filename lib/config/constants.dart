@@ -8,7 +8,6 @@ const String kDefaultFont = 'Poppins';
 const String googlePlacesApiKey =
     String.fromEnvironment('GOOGLE_PLACES_API_KEY');
 const List<int> ksRadiusOptions = [
-  50,
   100,
   150,
   200,
@@ -72,4 +71,3 @@ const List<int> alarmDurationOptions = [
   alarmDuration60s,
   alarmDuration90s,
 ];
-

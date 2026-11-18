@@ -74,7 +74,7 @@ const String msgGrantPermissions =
     "Let's grant a few permissions to get things working. You can change them later in settings.";
 const String labelRequired = 'Required';
 const String msgLocationRequired =
-    'To track your location, please grant the Location Permission.';
+    'Allow precise location and “all the time” access so WakePoint can detect your destination while the app is asleep.';
 const String msgNotificationRequired =
     'For alerts and notifications, please grant the Notification Permission.';
 const String msgActivityRequired =
@@ -112,7 +112,7 @@ const String labelMetric = 'Metric (meters, kilometers)';
 const String labelImperial = 'Imperial (yards, miles)';
 
 //  Tracking Configuration
-const String labelTrackingRadius = 'Alarm Trigger Radius';
+const String labelTrackingRadius = 'Approach Notification Range';
 const String labelSelectRadius = 'Select Alarm Radius';
 const String labelMeters = 'meters';
 const String labelVibration = 'Vibration';
@@ -133,10 +133,10 @@ const String labelNotificationRadius = 'Notification Range';
 const String descNotifyWhenNearby =
     "Enable to receive alerts only when you're close to your destination.";
 const String descNotificationRadius =
-    'Set how close you need to be for alerts to trigger.';
+    'Send an approaching notification when you enter this distance from your stop.';
 const String labelPersistentNotification = 'Persistent Notification';
 const String descEnablePersistent =
-    'Enable Persistent Notification to keep the app running in the background.';
+    'Keep a trip status notification visible while destination monitoring is active.';
 const String msgOverlayNeededForAlerts =
     'Required to show alerts over the lock screen.';
 const String msgBatteryNeededForPersistence =

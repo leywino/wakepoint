@@ -381,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(provider.isTracking ? Icons.my_location : Icons.route,
+          Icon(provider.isTracking ? Icons.radar_rounded : Icons.route,
               color: scheme.onPrimary),
           const SizedBox(width: 10),
           Text(
@@ -406,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 6),
         Text(
             provider.isTracking
-                ? 'WakePoint is watching your location.'
+                ? 'WakePoint is monitoring the destination area in the background.'
                 : active != null
                     ? 'Selected destination · Tap Start when you are ready.'
                     : 'Save a place, then select it to set your alarm.',
@@ -573,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       subtitle: Text(
           distanceText.trim().isEmpty
-              ? 'Radius · ${location.radius.round()} m'
+              ? 'Alert radius · ${location.radius < 100 ? 100 : location.radius.round()} m'
               : distanceText.trim(),
           style: TextStyle(
               fontFamily: kDefaultFont,

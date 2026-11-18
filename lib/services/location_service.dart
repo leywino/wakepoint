@@ -1,8 +1,6 @@
-import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
-  StreamSubscription<Position>? _positionStream;
   Position? _currentPosition;
 
   Position? get currentPosition => _currentPosition;
@@ -24,35 +22,6 @@ class LocationService {
     }
     return permission == LocationPermission.always ||
         permission == LocationPermission.whileInUse;
-  }
-
-  void startListening({
-    required LocationAccuracy accuracy,
-    int distanceFilter = 20,
-    required void Function(Position) onUpdate,
-  }) {
-    cancelStream();
-
-    final locationSettings = LocationSettings(
-      accuracy: accuracy,
-      distanceFilter: distanceFilter,
-    );
-
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen((position) {
-      _currentPosition = position;
-      onUpdate(position);
-    });
-  }
-
-  void stopListening() {
-    cancelStream();
-  }
-
-  void cancelStream() {
-    _positionStream?.cancel();
-    _positionStream = null;
   }
 
   double calculateDistance(

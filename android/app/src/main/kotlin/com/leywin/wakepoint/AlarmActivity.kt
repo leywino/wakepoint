@@ -19,6 +19,18 @@ class AlarmActivity : Activity() {
         // Start the Flutter app when the alarm is triggered
         val intent = Intent(this, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        intent.putExtra(
+            GeofenceBroadcastReceiver.EXTRA_EVENT_TYPE,
+            getIntent().getStringExtra(GeofenceBroadcastReceiver.EXTRA_EVENT_TYPE),
+        )
+        intent.putExtra(
+            GeofenceBroadcastReceiver.EXTRA_LOCATION_NAME,
+            getIntent().getStringExtra(GeofenceBroadcastReceiver.EXTRA_LOCATION_NAME),
+        )
+        intent.putExtra(
+            GeofenceBroadcastReceiver.EXTRA_TRIP_ID,
+            getIntent().getStringExtra(GeofenceBroadcastReceiver.EXTRA_TRIP_ID),
+        )
         startActivity(intent)
 
         finish() // Close the native alarm activity after launching Flutter

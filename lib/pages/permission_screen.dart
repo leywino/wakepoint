@@ -14,17 +14,29 @@ class PermissionScreen extends StatefulWidget {
   State<PermissionScreen> createState() => _PermissionScreenState();
 }
 
-class _PermissionScreenState extends State<PermissionScreen> {
+class _PermissionScreenState extends State<PermissionScreen>
+    with WidgetsBindingObserver {
   bool _locationGranted = false;
   bool _notificationGranted = false;
   bool _batteryGranted = false;
   bool _overlayGranted = false;
-  bool _activityGranted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkPermissions();
   }
 
   // Check all permissions on screen load
@@ -34,8 +46,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
     _notificationGranted = await Permission.notification.isGranted;
     _batteryGranted = await Permission.ignoreBatteryOptimizations.isGranted;
     _overlayGranted = await Permission.systemAlertWindow.isGranted;
-    _activityGranted = await Permission.activityRecognition.isGranted;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   // Request Location Permission using Geolocator
@@ -45,22 +56,15 @@ class _PermissionScreenState extends State<PermissionScreen> {
     if (permission == LocationPermission.denied) {
       final newPermission = await Geolocator.requestPermission();
 
-      if (newPermission == LocationPermission.always ||
-          newPermission == LocationPermission.whileInUse) {
+      if (newPermission == LocationPermission.always) {
         setState(() => _locationGranted = true);
-      }
-
-      if (newPermission == LocationPermission.whileInUse) {
+      } else if (newPermission == LocationPermission.whileInUse) {
         final alwaysStatus = await Permission.locationAlways.request();
-        if (alwaysStatus.isGranted) {
-          setState(() => _locationGranted = true);
-        }
+        if (mounted) setState(() => _locationGranted = alwaysStatus.isGranted);
       }
     } else if (permission == LocationPermission.whileInUse) {
       final alwaysStatus = await Permission.locationAlways.request();
-      if (alwaysStatus.isGranted) {
-        setState(() => _locationGranted = true);
-      }
+      if (mounted) setState(() => _locationGranted = alwaysStatus.isGranted);
     } else if (permission == LocationPermission.deniedForever) {
       _openAppSettingsDialog(permLocation);
     } else if (permission == LocationPermission.always) {
@@ -100,15 +104,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
       });
     } else if (status.isPermanentlyDenied) {
       _openAppSettingsDialog(permOverlay);
-    }
-  }
-
-  Future<void> _requestActivityPermission() async {
-    final status = await Permission.activityRecognition.request();
-    if (status.isGranted) {
-      setState(() => _activityGranted = true);
-    } else if (status.isPermanentlyDenied) {
-      _openAppSettingsDialog('Activity Recognition');
     }
   }
 
@@ -187,12 +182,6 @@ class _PermissionScreenState extends State<PermissionScreen> {
                           msgNotificationRequired,
                           _notificationGranted,
                           _requestNotificationPermission,
-                        ),
-                        _buildFlatPermissionTile(
-                          permActivity,
-                          msgActivityRequired,
-                          _activityGranted,
-                          _requestActivityPermission,
                         ),
                       ],
                     ),
