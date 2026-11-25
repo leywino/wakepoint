@@ -190,3 +190,5 @@ coverage/
 .gclient_previous_sync_commits
 
 .env
+# Widget Preview related
+.widget_preview/

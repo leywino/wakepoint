@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
   flutter_displaymode: ^0.7.0
   flutter_local_notifications: ^23.0.3
-  fluttertoast: ^9.1.0
+  fluttertoast: ^10.0.3
   geocoding: ^5.0.1
   geolocator: ^14.0.2
   google_maps_flutter: ^2.14.0
